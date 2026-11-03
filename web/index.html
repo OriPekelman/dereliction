@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physical Web</title>
+<style>
+  :root { --bg:#0e0f12; --panel:#15171c; --line:#262a33; --fg:#e6e8ee; --dim:#8b93a7; --acc:#ffb547; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:13px/1.4 ui-sans-serif, -apple-system, "Helvetica Neue", Arial, sans-serif; }
+  body { display:flex; }
+  #panel { width:320px; flex:0 0 320px; height:100vh; overflow-y:auto; background:var(--panel); border-right:1px solid var(--line); padding:14px 16px 40px; }
+  #stage { flex:1; height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); position:relative; overflow:hidden; }
+  canvas#gl { display:block; touch-action:none; cursor:crosshair; }
+  h1 { font-size:18px; margin:0 0 2px; letter-spacing:.02em; }
+  h1 small { color:var(--dim); font-weight:normal; font-size:12px; margin-left:6px; }
+  h2 { font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin:18px 0 8px; }
+  section { border-top:1px solid var(--line); padding-top:2px; }
+  label { display:block; color:var(--dim); }
+  input[type=text], input[type=number], select { width:100%; background:#0b0c0f; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  .row { display:flex; gap:8px; margin:6px 0; align-items:flex-end; }
+  .row > * { flex:1; }
+  button { background:#22262f; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
+  button:hover { border-color:var(--acc); }
+  button.primary { background:var(--acc); color:#000; border-color:var(--acc); font-weight:600; }
+  button.on { background:#3a2f12; border-color:var(--acc); color:var(--acc); }
+  .presets { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .ctl { display:grid; grid-template-columns: 92px 1fr 48px; align-items:center; gap:8px; margin:5px 0; }
+  .ctl label { color:var(--fg); }
+  .ctl input[type=range] { width:100%; accent-color:var(--acc); }
+  .ctl .val { color:var(--dim); text-align:right; font-variant-numeric:tabular-nums; }
+  .ctl select, .ctl input[type=color] { grid-column: 2 / span 2; padding:3px 6px; }
+  .ctl input[type=color] { height:28px; width:100%; background:none; border:1px solid var(--line); border-radius:6px; }
+  .chk { display:flex; align-items:center; gap:8px; margin:6px 0; color:var(--fg); }
+  .chk input { accent-color:var(--acc); }
+  #status { color:var(--dim); min-height:1.4em; margin-top:6px; white-space:pre-wrap; }
+  #status.err { color:#ff7a7a; }
+  #stats { position:absolute; left:10px; bottom:8px; color:var(--dim); font:11px ui-monospace, Menlo, monospace; pointer-events:none; }
+  .hint { color:var(--dim); font-size:12px; margin:6px 0 0; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<aside id="panel">
+  <h1>Physical Web <small>playground</small></h1>
+  <p class="hint">Every pixel of a captured page is a GPU particle; glyphs, images and marked elements are rigid bodies. Drag on the canvas to push particles or grab bodies. <a href="live-demo.html">Live-page demo →</a></p>
+
+  <section>
+    <h2>Capture</h2>
+    <label>URL <input id="url" type="text" value="https://en.wikipedia.org/wiki/Brownian_motion" spellcheck="false"></label>
+    <div class="row">
+      <label>width <input id="cw" type="number" value="1280" min="200" max="4096" step="10"></label>
+      <label>height <input id="ch" type="number" value="800" min="200" max="4096" step="10"></label>
+      <label>scroll y <input id="cy" type="number" value="0" min="0" step="100"></label>
+    </div>
+    <div class="row">
+      <button id="capture" class="primary">Capture via server</button>
+      <button id="demo">Built-in demo page</button>
+    </div>
+    <div class="row">
+      <button id="self">Capture this page (DOM, no server)</button>
+    </div>
+    <div id="status"></div>
+  </section>
+
+  <section>
+    <h2>Presets</h2>
+    <div class="presets" id="presets"></div>
+    <div class="row"><button id="reset">Reset to page</button></div>
+  </section>
+
+  <div id="controls"></div>
+</aside>
+
+<main id="stage">
+  <canvas id="gl"></canvas>
+  <div id="stats"></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+<script src="../lib/physical-web.js"></script>
+<script>
+'use strict';
+const { Sim, PRESETS, DEFAULTS, SEL, captureServer, captureDom } = PhysicalWeb;
+const $ = s => document.querySelector(s);
+const statusEl = $('#status');
+function status(msg, err = false) { statusEl.textContent = msg; statusEl.className = err ? 'err' : ''; }
+
+let sim;
+try {
+  sim = new Sim($('#gl'), { onStats: s => { $('#stats').textContent = `${(s.particles / 1e6).toFixed(2)}M particles · ${s.bodies} bodies (${s.granularity}) · ${s.ink.toLocaleString()} ink px · ${s.fps} fps`; } });
+} catch (e) { status(e.message, true); throw e; }
+const P = sim.params;
+
+// ---------------------------------------------------------------- controls
+const CONTROLS = [
+  { group: 'Gravity', items: [
+    { k: 'gravity', label: 'strength', min: 0, max: 2500, step: 10 },
+    { k: 'gravSel', label: 'applies to', sel: true } ] },
+  { group: 'Wind', items: [
+    { k: 'wind', label: 'strength', min: 0, max: 2000, step: 10 },
+    { k: 'windDir', label: 'direction °', min: 0, max: 360, step: 5 },
+    { k: 'turb', label: 'turbulence', min: 0, max: 3, step: 0.05 },
+    { k: 'lift', label: 'LAB lift', min: 0, max: 1, step: 0.05 },
+    { k: 'windSel', label: 'applies to', sel: true } ] },
+  { group: 'Viscosity', items: [
+    { k: 'drag', label: 'drag', min: 0, max: 12, step: 0.1 },
+    { k: 'dragSel', label: 'applies to', sel: true },
+    { k: 'lightDrag', label: 'by lightness', min: 0, max: 12, step: 0.1 } ] },
+  { group: 'Return spring', items: [
+    { k: 'spring', label: 'stiffness', min: 0, max: 400, step: 5 },
+    { k: 'springSel', label: 'applies to', sel: true } ] },
+  { group: 'Shapes', items: [
+    { k: 'rigid', label: 'text & images are rigid bodies (matter.js)', chk: true },
+    { k: 'granularity', label: 'body granularity', opts: ['lines', 'words', 'letters'] },
+    { k: 'solid', label: 'particles collide with text & images', chk: true },
+    { k: 'pile', label: 'pile depth', min: 0, max: 24, step: 1 } ] },
+  { group: 'Sand supply', items: [
+    { k: 'recycle', label: 'endless: what leaves the page re-enters at the top', chk: true },
+    { k: 'spoutX', label: 'spout x', min: 0, max: 1, step: 0.01 },
+    { k: 'spoutW', label: 'spout width', min: 0.02, max: 1, step: 0.01 } ] },
+  { group: 'World', items: [
+    { k: 'floor', label: 'floor & walls', chk: true },
+    { k: 'depthShade', label: 'shade by LAB depth', chk: true },
+    { k: 'timeScale', label: 'time scale', min: 0, max: 2, step: 0.05 },
+    { k: 'backdrop', label: 'backdrop', color: true },
+    { k: 'mouseF', label: 'mouse force', min: -3000, max: 3000, step: 50 },
+    { k: 'mouseR', label: 'mouse radius', min: 10, max: 400, step: 5 } ] },
+];
+const inputs = {};
+function buildControls() {
+  const root = $('#controls');
+  for (const g of CONTROLS) {
+    const sec = document.createElement('section');
+    sec.innerHTML = `<h2>${g.group}</h2>`;
+    for (const it of g.items) {
+      let el;
+      if (it.chk) {
+        el = document.createElement('label'); el.className = 'chk';
+        el.innerHTML = `<input type="checkbox" data-k="${it.k}"> <span>${it.label}</span>`;
+        inputs[it.k] = el.firstElementChild;
+      } else if (it.color) {
+        el = document.createElement('div'); el.className = 'ctl';
+        el.innerHTML = `<label>${it.label}</label><input type="color" data-k="${it.k}">`;
+        inputs[it.k] = el.querySelector('input');
+      } else if (it.sel || it.opts) {
+        el = document.createElement('div'); el.className = 'ctl';
+        const opts = it.opts ? it.opts.map(o => `<option value="${o}">${o}</option>`).join('') : SEL.map((s, i) => `<option value="${i}">${s}</option>`).join('');
+        el.innerHTML = `<label>${it.label}</label><select data-k="${it.k}">${opts}</select>`;
+        inputs[it.k] = el.querySelector('select');
+      } else {
+        el = document.createElement('div'); el.className = 'ctl';
+        el.innerHTML = `<label>${it.label}</label><input type="range" data-k="${it.k}" min="${it.min}" max="${it.max}" step="${it.step}"><span class="val"></span>`;
+        inputs[it.k] = el.querySelector('input');
+      }
+      sec.appendChild(el);
+    }
+    root.appendChild(sec);
+  }
+  for (const [k, el] of Object.entries(inputs)) {
+    el.addEventListener('input', () => {
+      let v;
+      if (el.type === 'checkbox') v = el.checked;
+      else if (el.type === 'color') v = el.value;
+      else if (el.tagName === 'SELECT') v = isNaN(+el.value) ? el.value : +el.value;
+      else v = +el.value;
+      sim.set({ [k]: v }); syncUI();
+    });
+  }
+  syncUI();
+}
+function syncUI() {
+  for (const [k, el] of Object.entries(inputs)) {
+    if (el.type === 'checkbox') el.checked = !!P[k]; else el.value = P[k];
+    const val = el.parentElement.querySelector('.val');
+    if (val && el.type === 'range') val.textContent = (+P[k]).toFixed(P[k] % 1 ? 2 : 0);
+  }
+  for (const b of document.querySelectorAll('#presets button')) b.classList.toggle('on', b.textContent === sim.presetName);
+}
+for (const name of Object.keys(PRESETS)) {
+  const b = document.createElement('button'); b.textContent = name; b.onclick = () => { sim.applyPreset(name); syncUI(); };
+  $('#presets').appendChild(b);
+}
+buildControls();
+
+// ---------------------------------------------------------------- stage sizing
+function fitStage() {
+  if (!sim.W) return;
+  const stage = $('#stage'), c = $('#gl');
+  const scale = Math.min((stage.clientWidth - 24) / sim.W, (stage.clientHeight - 24) / sim.H);
+  c.style.width = Math.round(sim.W * scale) + 'px'; c.style.height = Math.round(sim.H * scale) + 'px';
+  sim.fit();
+}
+window.addEventListener('resize', fitStage);
+function show(scene, msg) { sim.load(scene); fitStage(); sim.applyPreset('Still'); sim.start(); syncUI(); status(msg); }
+
+// ---------------------------------------------------------------- capture buttons
+$('#capture').onclick = async () => {
+  const url = $('#url').value.trim(), w = +$('#cw').value, h = +$('#ch').value, y = +$('#cy').value;
+  status(`Capturing ${url} at ${w}×${h}…`); $('#capture').disabled = true;
+  try {
+    const scene = await captureServer({ endpoint: '/capture', url, width: w, height: h, scrollY: y });
+    show(scene, `${scene.title || url} — ${scene.chars.length} glyphs, ${scene.shapes.length} shapes`);
+  } catch (e) { status(`${e.message}\nIs the server running?  uv run server.py`, true); }
+  finally { $('#capture').disabled = false; }
+};
+$('#url').addEventListener('keydown', e => { if (e.key === 'Enter') $('#capture').click(); });
+fetch('/health').then(r => r.ok ? r.json() : null).catch(() => null).then(h => {
+  if (!h) { $('#capture').disabled = true; $('#capture').title = 'No capture server here (run uv run server.py locally)'; $('#capture').textContent = 'Capture via server (not available)'; }
+});
+$('#self').onclick = async () => {
+  status('Rendering this page with html2canvas…');
+  try {
+    const scene = await captureDom({ ignore: el => el.id === 'stage' });
+    show(scene, `This page — ${scene.chars.length} glyphs, ${scene.shapes.length} shapes (client-side capture)`);
+  } catch (e) { status(e.message, true); }
+};
+$('#reset').onclick = () => { if (sim.W) { sim.reset(); sim.applyPreset('Still'); syncUI(); } };
+$('#demo').onclick = () => demoPage();
+
+// ---------------------------------------------------------------- built-in demo page (no server needed)
+const DEMO_PARAS = [
+  'A web page is just a million tiny bodies waiting for a force. Here, every pixel of the rendered page becomes a particle living on the GPU, and every glyph becomes a rigid body that can fall, tumble, and pile up at the bottom of the viewport.',
+  'Try the presets on the left. Ink falls gives gravity to dark pixels only. Sandstorm blows away everything that is not text, with CIE L* lightness acting as depth: light grains ride higher and brighten as the wind lifts them.',
+  'Sand pour drops the whole background from above onto the letters, which stay pinned and solid. Endless pour and Hourglass keep it coming. Letter pile releases each glyph as its own rigid body. Avalanche does both at once.',
+  'Capture any real page with the button above once the Playwright server is running, or capture this very page client-side with html2canvas. The library can also attach itself to a live site and play after a few idle seconds.',
+];
+function demoPage() {
+  const W = Math.min(1600, Math.max(600, +$('#cw').value || 1280)), H = Math.min(1200, Math.max(400, +$('#ch').value || 800));
+  const chars = [], shapes = [];
+  const render = (withText) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const ctx = c.getContext('2d'); ctx.textBaseline = 'top';
+    const text = (s, x, y, font, color, maxW) => {
+      ctx.font = font; ctx.fillStyle = color;
+      const size = +(font.match(/(\d+)px/) || [0, 16])[1], lh = size * 1.3;
+      const words = s.split(' '); let line = '', cy = y;
+      const flush = () => {
+        let cx = x;
+        for (const ch of line) {
+          const wch = ctx.measureText(ch).width;
+          if (ch !== ' ') { if (withText) ctx.fillText(ch, cx, cy); else chars.push([cx, cy + size * 0.1, wch, size * 1.0, 0]); }
+          cx += wch;
+        }
+        cy += lh; line = '';
+      };
+      for (const w of words) { const t = line ? line + ' ' + w : w; if (maxW && ctx.measureText(t).width > maxW && line) { flush(); line = w; } else line = t; }
+      if (line) flush();
+      return cy;
+    };
+    ctx.fillStyle = '#f7f6f2'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#15161a'; ctx.fillRect(0, 0, W, 64);
+    if (!withText) shapes.push([0, 0, W, 64, 1]);                       // nav bar: --physics: solid
+    ctx.font = 'bold 20px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('THE PHYSICAL WEB', 40, 22);
+    ctx.font = '15px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#9aa4b8'; ctx.fillText('physics · pixels · play', W - 240, 24);
+    const colW = Math.min(620, W * 0.5);
+    let y = text('Pixels have mass now', 60, 110, 'bold 60px Georgia, "Times New Roman", serif', '#111111', colW);
+    y = text('Every pixel is a particle. Every letter is a body. Push, blow, pour, collapse.', 60, y + 10, 'italic 22px Georgia, serif', '#5b6070', colW) + 18;
+    for (const p of DEMO_PARAS) y = text(p, 60, y, '17px Georgia, serif', '#2a2d35', colW) + 12;
+    ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.roundRect(60, y + 12, 150, 42, 8); ctx.fill();
+    ctx.font = 'bold 16px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText('Read more →', 78, y + 22);
+    if (!withText) shapes.push([60, y + 12, 150, 42, 0]);               // button: --physics: rigid
+    const ix = Math.max(colW + 120, W - 480), iy = 110, iw = W - ix - 60, ih = Math.min(300, H * 0.38);
+    const g = ctx.createLinearGradient(ix, iy, ix + iw, iy + ih);
+    g.addColorStop(0, '#ff7a59'); g.addColorStop(0.5, '#ffd166'); g.addColorStop(1, '#06d6a0');
+    ctx.fillStyle = g; ctx.fillRect(ix, iy, iw, ih);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    for (let i = 0; i < 7; i++) { ctx.beginPath(); ctx.arc(ix + 40 + i * (iw - 80) / 6, iy + ih / 2 + Math.sin(i) * ih * 0.25, 18 + i * 4, 0, Math.PI * 2); ctx.fill(); }
+    if (!withText) shapes.push([ix, iy, iw, ih, 0]);
+    text('Fig. 1 — seven circles of increasing mass, allegedly.', ix, iy + ih + 12, 'italic 14px Georgia, serif', '#6b7080', iw);
+    let sy = iy + ih + 70;
+    text('Forces available', ix, sy, 'bold 18px Helvetica, Arial, sans-serif', '#111'); sy += 36;
+    for (const s of ['Gravity, selectable by colour, text or lightness', 'Wind with curl-noise turbulence', 'Viscosity, optionally by L* lightness', 'Return spring (reassemble the page)', 'Rigid bodies for lines, words or letters', 'Solid text that sand piles onto, endlessly if you like']) {
+      ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.arc(ix + 6, sy + 9, 4, 0, Math.PI * 2); ctx.fill();
+      sy = text(s, ix + 20, sy, '15px Helvetica, Arial, sans-serif', '#2a2d35', iw - 20) + 4;
+    }
+    return c;
+  };
+  const withText = render(true);
+  chars.length = 0; shapes.length = 0;
+  const noText = render(false);
+  show({ shot: withText, notext: noText, chars, shapes, w: W, h: H }, `Demo page — ${chars.length} glyphs, ${shapes.length} shapes (nav bar is solid, button is a rigid block). Pick a preset.`);
+}
+demoPage();
+window.PW = { sim, demoPage };
+</script>
+</body>
+</html>

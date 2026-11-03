@@ -1,0 +1,21 @@
+{
+  "name": "physical-web",
+  "version": "0.2.0",
+  "description": "Give the pixels of a web page mass: GPU particles, rigid words, sand that pours over letters. Drop-in, client-side.",
+  "main": "lib/physical-web.js",
+  "module": "lib/physical-web.mjs",
+  "unpkg": "dist/physical-web.min.js",
+  "jsdelivr": "dist/physical-web.min.js",
+  "files": ["lib", "dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "esbuild lib/physical-web.js --minify --legal-comments=inline --outfile=dist/physical-web.min.js && node -e \"require('fs').copyFileSync('lib/physical-web.js','dist/physical-web.js')\"",
+    "serve": "uv run server.py",
+    "test": "uv run python tests/smoke.py"
+  },
+  "repository": { "type": "git", "url": "https://github.com/OriPekelman/physical-web.git" },
+  "keywords": ["webgl", "particles", "physics", "matter-js", "html2canvas", "creative-coding", "gpgpu"],
+  "author": "Ori Pekelman",
+  "license": "MIT",
+  "devDependencies": { "esbuild": "^0.24.0" },
+  "peerDependenciesMeta": { "matter-js": { "optional": true }, "html2canvas": { "optional": true } }
+}

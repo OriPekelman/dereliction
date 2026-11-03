@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+web/physics/
+node_modules/
+.DS_Store

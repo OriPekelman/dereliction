@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><title>--physics fixture</title>
+<style>
+ body{margin:0;font:18px/1.5 Georgia,serif;background:#fff;color:#111}
+ header{--physics:solid;background:#1b2a4a;color:#fff;padding:20px 40px;font:bold 24px Helvetica,Arial}
+ main{padding:30px 40px;display:grid;grid-template-columns:1fr 320px;gap:30px}
+ .card{--physics:rigid;background:#ffd166;padding:16px;border-radius:12px}
+ .loose{--physics:sand;color:#555}
+ aside[data-physics=solid]{background:#eee;padding:12px}
+</style></head><body>
+<header>Solid header — never falls, sand piles on it</header>
+<main>
+ <div>
+  <h1>A page that knows about physics</h1>
+  <p>This paragraph is ordinary text: glyphs become bodies.</p>
+  <p class="loose">This paragraph is marked sand, so its letters are loose particles that blow away with the background.</p>
+  <div class="card">This whole card is one rigid body, text included. It falls as a block.</div>
+  <p>More ordinary text after the card.</p>
+ </div>
+ <aside data-physics="solid">A solid aside via data attribute.<br><img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='120'><rect width='200' height='120' fill='%2306d6a0'/></svg>" width="200" height="120"></aside>
+</main></body></html>

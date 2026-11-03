@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live page demo — Physical Web</title>
+<style>
+  :root { --primary: #033b96; --secondary: #510837; --bg: #eff1f4; --fg: #333; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font: 18px/1.5 Georgia, "Times New Roman", serif; }
+  header { --physics: solid; background: var(--primary); color: #fff; padding: 18px 6vw; display: flex; justify-content: space-between; align-items: baseline; font-family: Helvetica, Arial, sans-serif; }
+  header b { font-size: 22px; letter-spacing: .04em; }
+  header nav a { color: #cfd8ea; margin-left: 22px; text-decoration: none; font-size: 15px; }
+  #main { max-width: 1100px; width: 90%; margin: 40px auto 80px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); padding: 36px 44px; }
+  h1 { font-size: 46px; line-height: 1.1; color: var(--secondary); margin-bottom: 14px; }
+  h2 { font-size: 24px; margin: 28px 0 10px; color: var(--primary); }
+  p { margin-bottom: 1em; }
+  .grid { display: grid; grid-template-columns: 1fr 320px; gap: 36px; }
+  .card { --physics: rigid; background: #ffe9b0; border-radius: 10px; padding: 18px 20px; font-size: 16px; }
+  .card strong { display: block; margin-bottom: 6px; }
+  .loose { --physics: sand; color: #7a7f8a; font-style: italic; }
+  figure img { width: 100%; border-radius: 8px; display: block; }
+  figcaption { font-size: 14px; color: #666; margin-top: 6px; }
+  .note { position: fixed; right: 14px; bottom: 12px; font: 13px Helvetica, Arial, sans-serif; color: #666; background: rgba(255,255,255,.85); padding: 6px 10px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<header><b>ORI PEKELMAN</b><nav><a href="#">Poetry</a><a href="#">Presentations</a><a href="#">Blog</a><a href="#">About</a></nav></header>
+<div id="main">
+  <h1>A page that falls apart when you stop reading</h1>
+  <p class="loose">(This grey italic paragraph is marked <code>--physics: sand</code>: its letters are loose particles and leave with the background.)</p>
+  <div class="grid">
+    <div>
+      <p>Leave the mouse alone for three seconds. The viewport is rendered to pixels in the browser itself, no server involved, and every pixel becomes a particle with mass. Words become rigid bodies and tumble into a pile at the bottom of the window; the white of the page pours over them like sand and settles on top of the letters.</p>
+      <h2>What stays, what goes</h2>
+      <p>The blue header is marked <code>solid</code> in CSS, so it never moves and sand piles against it. The yellow card is marked <code>rigid</code>: the whole box, text included, falls as one block. Everything else follows the default rules: text is a body, backgrounds are sand.</p>
+      <p>Scroll, press a key or use the wheel and the page reassembles itself and goes back to being an ordinary page. Drag with the mouse while it is falling to push the sand around or throw a word.</p>
+      <h2>Why</h2>
+      <p>Because a web page is only a million tiny bodies waiting for a force, and it seemed a shame to never give them one.</p>
+    </div>
+    <aside>
+      <div class="card"><strong>Rigid card</strong>This card is one body. It will fall as a block, text and all, and land on whatever got there first.</div>
+      <figure style="margin-top: 24px">
+        <img alt="gradient" width="320" height="200" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='200'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ff7a59'/><stop offset='.5' stop-color='%23ffd166'/><stop offset='1' stop-color='%2306d6a0'/></linearGradient></defs><rect width='320' height='200' fill='url(%23g)'/><circle cx='80' cy='100' r='40' fill='white' opacity='.4'/><circle cx='200' cy='80' r='55' fill='white' opacity='.35'/></svg>">
+        <figcaption>Fig. 1 — an image is a rigid body by default.</figcaption>
+      </figure>
+    </aside>
+  </div>
+</div>
+<div class="note" id="note">idle for 3 s → avalanche · scroll / key → reassemble</div>
+
+<script src="../lib/physical-web.js"></script>
+<script>
+  const ctl = PhysicalWeb.attach({
+    idle: 3000,
+    preset: 'Avalanche',
+    capture: 'dom',                 // client-only; 'server' + {server: '/capture'} or 'auto' with a manifest also work
+    onStart: () => { document.getElementById('note').textContent = 'drag to push sand or throw a word · scroll / key to reassemble'; },
+    onEnd: () => { document.getElementById('note').textContent = 'idle for 3 s → avalanche · scroll / key → reassemble'; },
+  });
+  window.ctl = ctl;
+</script>
+</body>
+</html>

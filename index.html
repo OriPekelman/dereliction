@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physical Web — give your pixels mass</title>
+<meta name="description" content="A drop-in script that turns a web page into a million particles and its words into rigid bodies. Sand pours over the letters. Words pile up. Scroll and it reassembles.">
+<style>
+  :root { --ink: #1b1b1f; --paper: #f4f1ea; --accent: #b4432a; --muted: #6b6560; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { background: var(--paper); }
+  body { color: var(--ink); background: var(--paper); font: 19px/1.55 Georgia, "Iowan Old Style", "Times New Roman", serif; }
+  header { --physics: solid; display: flex; justify-content: space-between; align-items: baseline; padding: 20px 6vw; border-bottom: 2px solid var(--ink); font-family: Helvetica, Arial, sans-serif; }
+  header b { letter-spacing: .06em; font-size: 15px; }
+  header nav a { color: var(--ink); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  main { max-width: 1040px; margin: 0 auto; padding: 56px 6vw 80px; }
+  h1 { font-size: clamp(42px, 7vw, 92px); line-height: .98; letter-spacing: -.02em; margin-bottom: 22px; }
+  h1 em { color: var(--accent); font-style: italic; }
+  .lede { font-size: 24px; max-width: 760px; margin-bottom: 36px; }
+  .cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 44px; align-items: start; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  h2 { font-family: Helvetica, Arial, sans-serif; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 30px 0 10px; }
+  p { margin-bottom: 1em; }
+  pre { --physics: rigid; background: var(--ink); color: #f1eee6; padding: 16px 18px; border-radius: 6px; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; overflow-x: auto; margin: 10px 0 18px; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; }
+  pre code { background: none; padding: 0; }
+  .card { --physics: rigid; background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 18px 20px; box-shadow: 6px 6px 0 var(--ink); font-size: 17px; }
+  .card strong { display: block; margin-bottom: 6px; font-family: Helvetica, Arial, sans-serif; }
+  .fine { --physics: sand; color: var(--muted); font-style: italic; font-size: 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: 16px; margin-bottom: 18px; }
+  td { padding: 6px 8px 6px 0; vertical-align: top; border-bottom: 1px solid rgba(0,0,0,.12); }
+  td:first-child { white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 24px; }
+  .buttons a, .buttons button { font: 15px Helvetica, Arial, sans-serif; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px; border: 0; cursor: pointer; text-decoration: none; }
+  .buttons .alt { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+  .status { position: fixed; right: 14px; bottom: 12px; font: 13px Helvetica, Arial, sans-serif; color: #fff; background: var(--ink); padding: 7px 11px; border-radius: 6px; z-index: 2147483001; pointer-events: none; opacity: .9; }
+  footer { border-top: 2px solid var(--ink); padding: 20px 6vw; font: 14px Helvetica, Arial, sans-serif; color: var(--muted); }
+</style>
+</head>
+<body>
+<header><b>PHYSICAL WEB</b><nav><a href="web/index.html">Playground</a><a href="web/live-demo.html">Live demo</a><a href="https://github.com/OriPekelman/physical-web">GitHub</a></nav></header>
+
+<main>
+  <h1>Give your pixels <em>mass.</em></h1>
+  <p class="lede">Leave this page alone for five seconds. Every pixel becomes a particle, every word a rigid body, and the paper pours over the letters like sand. Scroll, and it puts itself back together.</p>
+  <div class="buttons">
+    <button id="now">Don't wait, do it now</button>
+    <a class="alt" href="web/index.html">Open the playground</a>
+    <a class="alt" href="https://github.com/OriPekelman/physical-web">Read the code</a>
+  </div>
+
+  <div class="cols">
+    <div>
+      <h2>What it is</h2>
+      <p>A single script, no build step, no server. It renders the viewport to pixels in the browser, hands a million of them to a WebGL2 simulation, and gives the text to a rigid-body engine. Gravity can apply to dark pixels only. Wind can blow away everything that is not text. Letters can fall into a pile. Sand can pour over them for as long as you like.</p>
+      <p>It is meant to <em>happen</em> to an ordinary page: after a while without any activity, the page you were reading comes apart; the first scroll or key press brings it back, and the page is an ordinary page again.</p>
+
+      <h2>Use it</h2>
+<pre><code>&lt;script src="physical-web.js" defer&gt;&lt;/script&gt;
+&lt;script&gt;
+  PhysicalWeb.attach({ idle: 8000, preset: 'Avalanche' });
+&lt;/script&gt;</code></pre>
+      <p>Tell it what should hold and what should go, in your own stylesheet:</p>
+<pre><code>header   { --physics: solid; }   /* never moves; sand piles on it   */
+.card    { --physics: rigid; }   /* one body, falls as a block      */
+.fine    { --physics: sand;  }   /* its text is loose grains        */</code></pre>
+      <p class="fine">This italic line is marked sand. It will not survive the avalanche; it goes with the paper.</p>
+
+      <h2>Presets</h2>
+      <table>
+        <tr><td>Avalanche</td><td>words fall as rigid bodies while the paper pours over them as sand</td></tr>
+        <tr><td>Letter pile</td><td>every glyph is its own body</td></tr>
+        <tr><td>Hourglass</td><td>an endless trickle of sand through a narrow spout, onto the text</td></tr>
+        <tr><td>Sandstorm</td><td>wind on everything that is not text; lightness becomes depth</td></tr>
+        <tr><td>Ink falls</td><td>only the dark pixels get gravity; the light ones are viscous</td></tr>
+        <tr><td>Melt</td><td>gravity on everything, drag by lightness</td></tr>
+        <tr><td>Reassemble</td><td>a critically damped spring back to the page</td></tr>
+      </table>
+    </div>
+    <aside>
+      <div class="card"><strong>This card is rigid</strong>Text, border and shadow fall together as one block and land on whatever got to the bottom first. Drag it with the mouse while things are falling.</div>
+      <h2>Under the hood</h2>
+      <p style="font-size:16px">Two renders of the page, one with the text made transparent, are diffed into a pixel-exact ink mask. Particle state lives in float textures; one fragment shader is the physics step. Bodies come from matter.js and are rasterised every frame into an obstacle map, which is what the sand piles on. Chrome, Firefox and Safari 15+, anything with WebGL2.</p>
+      <p style="font-size:16px">Prefer pixel-perfect captures? A build-time prerender or a small Playwright service are included too. Neither is required.</p>
+    </aside>
+  </div>
+</main>
+<footer>MIT licensed · by Ori Pekelman · respects <code>prefers-reduced-motion</code></footer>
+<div class="status" id="status">idle 5 s → it falls · scroll or key → it returns</div>
+
+<script src="lib/physical-web.js"></script>
+<script>
+  const statusEl = document.getElementById('status');
+  const ctl = PhysicalWeb.attach({
+    idle: 5000, preset: 'Avalanche', capture: 'dom',
+    onStart: () => { statusEl.textContent = 'drag to push the sand or throw a word · scroll or key to put it back'; },
+    onEnd: () => { statusEl.textContent = 'idle 5 s → it falls · scroll or key → it returns'; },
+    onError: (e) => { statusEl.textContent = 'could not start: ' + e.message; },
+  });
+  if (ctl.inert) statusEl.textContent = 'physics off here (reduced motion or no WebGL2)';
+  document.getElementById('now').addEventListener('click', (e) => { e.preventDefault(); ctl.play(); });
+  window.ctl = ctl;
+</script>
+</body>
+</html>
