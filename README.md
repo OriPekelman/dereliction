@@ -74,6 +74,7 @@ An inheriting CSS custom property or a data attribute decides what an element is
 ```css
 header        { --physics: solid; }   /* one static block: never moves, sand piles on it */
 .card         { --physics: rigid; }   /* the whole element is one rigid body, text included */
+.block        { --physics: frame; }   /* a hollow rigid block: it falls as one body and its words fall inside it */
 .footnotes    { --physics: sand;  }   /* its text is loose particles, never a body */
 ```
 ```html

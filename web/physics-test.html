@@ -5,6 +5,7 @@
  main{padding:30px 40px;display:grid;grid-template-columns:1fr 320px;gap:30px}
  .card{--physics:rigid;background:#ffd166;padding:16px;border-radius:12px}
  .loose{--physics:sand;color:#555}
+ .block{--physics:frame;background:#dfe7f5;border:2px solid #1b2a4a;border-radius:8px;padding:14px 16px;margin:18px 0}
  aside[data-physics=solid]{background:#eee;padding:12px}
 </style></head><body>
 <header>Solid header — never falls, sand piles on it</header>
@@ -15,6 +16,7 @@
   <p class="loose">This paragraph is marked sand, so its letters are loose particles that blow away with the background.</p>
   <div class="card">This whole card is one rigid body, text included. It falls as a block.</div>
   <p>More ordinary text after the card.</p>
+  <div class="block">This block is a frame: it falls as one body, and these words fall inside it and settle on its floor.</div>
  </div>
  <aside data-physics="solid">A solid aside via data attribute.<br><img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='120'><rect width='200' height='120' fill='%2306d6a0'/></svg>" width="200" height="120"></aside>
 </main></body></html>

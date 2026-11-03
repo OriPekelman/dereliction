@@ -15,12 +15,13 @@
  *
  *  Author control in the page's CSS (inherits) or markup:
  *    header { --physics: solid; }   .card { --physics: rigid; }   .loose { --physics: sand; }
+ *    .block { --physics: frame; }   (the block falls as one body; its words fall inside it)
  *    <aside data-physics="solid">
  */
 (function (global) {
 'use strict';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const CDN = {
   matter: 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js',
   html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
@@ -45,13 +46,14 @@ html { scroll-behavior: auto !important; }
 // ------------------------------------------------------------------ DOM rect extraction
 // Per-glyph rects for visible text, plus "shapes": img/svg/video/canvas and any element
 // marked --physics: rigid|solid (CSS custom property, inherits) or data-physics="...".
-// Roles: 0 default (rigid when rigid mode is on), 1 solid (never moves, blocks sand), 2 sand.
+// Roles: 0 default (rigid when rigid mode is on), 1 solid (never moves, blocks sand), 2 sand,
+// 3 frame (the element is a hollow rigid block; the words inside it are their own bodies and fall within it).
 function extractRects(doc, opts) {
   doc = doc || document; opts = opts || {};
   const win = doc.defaultView;
   const W = opts.width || win.innerWidth, H = opts.height || win.innerHeight;
   const ignore = opts.ignore || (() => false);
-  const ROLE = { '': 0, default: 0, rigid: 0, solid: 1, sand: 2, particles: 2, none: 2 };
+  const ROLE = { '': 0, default: 0, rigid: 0, solid: 1, sand: 2, particles: 2, none: 2, frame: 3 };
   const roleOf = (el) => {
     const v = win.getComputedStyle(el).getPropertyValue('--physics').trim().toLowerCase();
     if (v) return v;
@@ -66,13 +68,13 @@ function extractRects(doc, opts) {
   for (const el of doc.body.querySelectorAll('*')) {
     if (skip.has(el.tagName) || ignore(el)) continue;
     const v = roleOf(el);
-    if (v !== 'rigid' && v !== 'solid') continue;
+    if (v !== 'rigid' && v !== 'solid' && v !== 'frame') continue;
     const pv = el.parentElement && el.parentElement !== doc.documentElement ? roleOf(el.parentElement) : '';
     if (pv === v) continue;
     const b = el.getBoundingClientRect();
     if (!visible(b)) continue;
     shapes.push([b.left, b.top, b.width, b.height, ROLE[v]]);
-    shaped.add(el);
+    if (v !== 'frame') shaped.add(el);        // a frame keeps its text: the glyphs inside become their own bodies
   }
   const insideShape = (el) => { for (let e = el; e; e = e.parentElement) if (shaped.has(e)) return true; return false; };
   const ignored = (el) => { for (let e = el; e; e = e.parentElement) if (ignore(e)) return true; return false; };
@@ -89,7 +91,8 @@ function extractRects(doc, opts) {
     const cs = win.getComputedStyle(el);
     if (cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) continue;
     if (insideShape(el) || ignored(el)) continue;
-    const role = ROLE[roleOf(el)] ?? 0;
+    const rv = roleOf(el);
+    const role = rv === 'frame' ? 0 : (ROLE[rv] ?? 0);   // text inside a frame is ordinary body text
     range.selectNodeContents(n);
     if (!visible(range.getBoundingClientRect())) continue;
     for (let i = 0; i < s.length; i++) {
@@ -241,6 +244,7 @@ void main(){
   int gtype = g.b;
   int role = g.a;
   if (role == 2) isText = 0.0;
+  if (uRigid == 1 && body < 0 && role != 1) isText = 0.0;   // ink outside every body (capture/DOM mismatch) is sand
   bool rigidPart = body >= 0 && (gtype == 2 || isText > 0.5) && (uRigid == 1 || role == 1);
   vec2 pos = P.xy; float z = P.z; vec3 vel = V.xyz;
   float dt = uDt;
@@ -526,6 +530,7 @@ class Sim {
       if (v > 30) inkCount++;
     }
     this.W = W; this.H = H; this.N = W * H;
+    this.ink = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) this.ink[i] = mask[i * 4];
     this.scene = { chars: scene.chars || [], shapes: scene.shapes || [], inkCount, W, H };
     this._freeGL();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -567,7 +572,8 @@ class Sim {
     const { Engine, Bodies, Body, Composite, Mouse, MouseConstraint } = global.Matter;
     const gl = this.gl, P = this.params, { W, H, chars, shapes } = this.scene;
     this.granularity = P.granularity;
-    const inShape = (r) => { const cx = r[0] + r[2] / 2, cy = r[1] + r[3] / 2; return shapes.some(sh => cx >= sh[0] && cx <= sh[0] + sh[2] && cy >= sh[1] && cy <= sh[1] + sh[3]); };
+    const inside = (r, sh) => { const cx = r.x + r.w / 2, cy = r.y + r.h / 2; return cx >= sh[0] && cx <= sh[0] + sh[2] && cy >= sh[1] && cy <= sh[1] + sh[3]; };
+    const inShape = (r) => shapes.some(sh => (sh[4] || 0) !== 3 && inside({ x: r[0], y: r[1], w: r[2], h: r[3] }, sh));   // frames keep their text
     const freeChars = chars.filter(r => !inShape(r));
     const bodyChars = freeChars.filter(r => (r[4] || 0) !== 2), sandChars = freeChars.filter(r => (r[4] || 0) === 2);
     const textRects = P.granularity === 'letters' ? bodyChars.map(r => ({ x: r[0], y: r[1], w: r[2], h: r[3] }))
@@ -579,7 +585,9 @@ class Sim {
     };
     let items = [];
     for (const r of shapes) { const c = clip({ x: r[0], y: r[1], w: r[2], h: r[3] }, 0); if (c && c.w * c.h < W * H * 0.6) items.push({ ...c, type: 2, role: r[4] || 0 }); }
-    for (const r of textRects) { const c = clip(r, 1); if (c) items.push({ ...c, type: 1, role: 0 }); }
+    const frames = items.filter(it => it.role === 3).map(it => [it.x, it.y, it.w, it.h]);
+    // text bodies are padded 3 px so underlines and accents travel with their word
+    for (const r of textRects) { const c = clip(r, 3); if (c) items.push({ ...c, type: 1, role: 0, inFrame: frames.some(f => inside(c, f)) }); }
     const MAX = 3000;
     if (items.length > MAX) { items.sort((p, q) => q.w * q.h - p.w * p.h); items = items.slice(0, MAX); }
 
@@ -588,10 +596,13 @@ class Sim {
       const c = clip({ x: r[0], y: r[1], w: r[2], h: r[3] }, 1); if (!c) continue;
       for (let y = c.y; y < c.y + c.h; y++) for (let x = c.x; x < c.x + c.w; x++) g[(y * W + x) * 4 + 3] = 2;
     }
+    const ink = this.ink;
     items.forEach((it, i) => {
       const id = i + 1;
       for (let y = it.y; y < it.y + it.h; y++) for (let x = it.x; x < it.x + it.w; x++) {
-        const o = (y * W + x) * 4; g[o] = id & 255; g[o + 1] = id >> 8; g[o + 2] = it.type; g[o + 3] = it.role;
+        const px = y * W + x, o = px * 4;
+        if (it.inFrame && ink[px] < 30) continue;          // inside a frame only the ink is the word; the rest rides with the frame
+        g[o] = id & 255; g[o + 1] = id >> 8; g[o + 2] = it.type; g[o + 3] = it.role;
       }
     });
     gl.bindTexture(gl.TEXTURE_2D, this.tex.group);
@@ -601,8 +612,20 @@ class Sim {
     this.engine = Engine.create({ enableSleeping: true, positionIterations: 6, velocityIterations: 4 });
     this.engine.gravity.y = 1;
     this.bodies = items.map(it => {
-      const b = Bodies.rectangle(it.x + it.w / 2, it.y + it.h / 2, it.w, it.h, { restitution: 0.15, friction: 0.7, frictionAir: 0.012, density: it.type === 2 ? 0.002 : 0.001 });
-      b.plugin.home = { x: it.x + it.w / 2, y: it.y + it.h / 2, w: it.w, h: it.h, type: it.type, role: it.role };
+      const cx = it.x + it.w / 2, cy = it.y + it.h / 2;
+      const phys = { restitution: 0.15, friction: 0.7, frictionAir: 0.012, density: it.type === 2 ? 0.002 : 0.001 };
+      let b;
+      if (it.role === 3) {
+        // hollow block: four edges as one compound body, so the words inside fall within it and rest on its floor
+        const t = Math.max(4, Math.min(8, Math.floor(Math.min(it.w, it.h) / 8)));
+        const parts = [
+          Bodies.rectangle(cx, it.y + t / 2, it.w, t, phys), Bodies.rectangle(cx, it.y + it.h - t / 2, it.w, t, phys),
+          Bodies.rectangle(it.x + t / 2, cy, t, it.h, phys), Bodies.rectangle(it.x + it.w - t / 2, cy, t, it.h, phys),
+        ];
+        b = Body.create({ parts, ...phys, density: 0.004 });
+        Body.setPosition(b, { x: cx, y: cy });
+      } else b = Bodies.rectangle(cx, cy, it.w, it.h, phys);
+      b.plugin.home = { x: cx, y: cy, w: it.w, h: it.h, type: it.type, role: it.role };
       Body.setStatic(b, true);
       return b;
     });
