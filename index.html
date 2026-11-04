@@ -43,10 +43,13 @@
 <main>
   <h1>Give your pixels <em>mass.</em></h1>
   <p class="lede">Leave this page alone for five seconds. Every pixel becomes a particle, every word a rigid body, and the paper pours over the letters like sand. Scroll, and it puts itself back together.</p>
-  <div class="buttons">
-    <button id="now">Don't wait, do it now</button>
-    <a class="alt" href="web/index.html">Open the playground</a>
-    <a class="alt" href="https://github.com/OriPekelman/physical-web">Read the code</a>
+  <div class="buttons" id="presets">
+    <button data-preset="Avalanche">Avalanche now</button>
+    <button class="alt" data-preset="Letter pile">Letter pile</button>
+    <button class="alt" data-preset="Hourglass">Hourglass</button>
+    <button class="alt" data-preset="Sandstorm">Sandstorm</button>
+    <button class="alt" data-preset="Melt">Melt</button>
+    <a class="alt" href="web/index.html">Playground with every knob →</a>
   </div>
 
   <div class="cols">
@@ -56,14 +59,14 @@
       <p>It is meant to <em>happen</em> to an ordinary page: after a while without any activity, the page you were reading comes apart; the first scroll or key press brings it back, and the page is an ordinary page again.</p>
 
       <h2>Use it</h2>
-<pre><code>&lt;script src="physical-web.js" defer&gt;&lt;/script&gt;
-&lt;script&gt;
-  PhysicalWeb.attach({ idle: 8000, preset: 'Avalanche' });
-&lt;/script&gt;</code></pre>
+<pre><code>&lt;script src="physical-web.bundle.min.js" defer
+        data-attach data-idle="8000" data-preset="Avalanche"&gt;&lt;/script&gt;</code></pre>
+      <p>One file, one tag, no build step. Or <code>npm i physical-web</code> and call <code>PhysicalWeb.attach({…})</code> yourself.</p>
       <p>Tell it what should hold and what should go, in your own stylesheet:</p>
-<pre><code>header   { --physics: solid; }   /* never moves; sand piles on it   */
-.card    { --physics: rigid; }   /* one body, falls as a block      */
-.fine    { --physics: sand;  }   /* its text is loose grains        */</code></pre>
+<pre><code>header   { --physics: solid; }   /* never moves; sand piles on it      */
+.card    { --physics: rigid; }   /* one body, falls as a block         */
+.block   { --physics: frame; }   /* falls as a box; words fall inside  */
+.fine    { --physics: sand;  }   /* its text is loose grains           */</code></pre>
       <p class="fine">This italic line is marked sand. It will not survive the avalanche; it goes with the paper.</p>
 
       <h2>Presets</h2>
@@ -86,19 +89,33 @@
   </div>
 </main>
 <footer>MIT licensed · by Ori Pekelman · respects <code>prefers-reduced-motion</code></footer>
-<div class="status" id="status">idle 5 s → it falls · scroll or key → it returns</div>
+<div class="status" id="status">idle 5 s → it falls · scroll or Esc → it returns · 1–5 switch presets</div>
 
 <script src="lib/physical-web.js"></script>
 <script>
   const statusEl = document.getElementById('status');
+  const IDLE = 'idle 5 s → it falls · scroll or Esc → it returns · 1–5 switch presets';
+  const QUICK = ['Avalanche', 'Letter pile', 'Hourglass', 'Sandstorm', 'Melt'];
   const ctl = PhysicalWeb.attach({
     idle: 5000, preset: 'Avalanche', capture: 'dom',
-    onStart: () => { statusEl.textContent = 'drag to push the sand or throw a word · scroll or key to put it back'; },
-    onEnd: () => { statusEl.textContent = 'idle 5 s → it falls · scroll or key → it returns'; },
+    exitOn: ['wheel', 'touchmove', 'scroll'],        // keys are used to switch presets; Esc exits
+    onStart: (sim) => { statusEl.textContent = 'drag to push the sand or throw a word · 1–5 presets · scroll or Esc to put it back'; },
+    onEnd: () => { statusEl.textContent = IDLE; },
     onError: (e) => { statusEl.textContent = 'could not start: ' + e.message; },
   });
-  if (ctl.inert) statusEl.textContent = 'physics off here (reduced motion or no WebGL2)';
-  document.getElementById('now').addEventListener('click', (e) => { e.preventDefault(); ctl.play(); });
+  if (ctl.inert) statusEl.textContent = 'physics is off here (reduced motion, or no WebGL2)';
+  const show = (name) => { statusEl.textContent = name + ' · 1–5 presets · scroll or Esc to put it back'; };
+  document.getElementById('presets').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-preset]'); if (!b) return;
+    e.preventDefault(); const sim = await ctl.play(b.dataset.preset); if (sim) show(b.dataset.preset);
+  });
+  addEventListener('keydown', (e) => {
+    if (!ctl.active) return;
+    if (e.key === 'Escape') ctl.stop(false);
+    const i = '12345'.indexOf(e.key);
+    if (i >= 0 && ctl.sim) { ctl.sim.applyPreset(QUICK[i]); show(QUICK[i]); }
+    if (e.key.toLowerCase() === 'r' && ctl.sim) { ctl.sim.applyPreset('Reassemble'); show('Reassemble'); }
+  });
   window.ctl = ctl;
 </script>
 </body>

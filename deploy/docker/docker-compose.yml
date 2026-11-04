@@ -1,0 +1,20 @@
+# Optional capture service (server-assisted path). Put it behind your reverse proxy / tunnel and
+# point the library at it:  PhysicalWeb.attach({ capture: 'server', server: 'https://physics.example.com/capture' })
+services:
+  physical-web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    restart: unless-stopped
+    environment:
+      PW_ALLOW: "https://example.com/,https://www.example.com/"   # only these URL prefixes may be captured
+      PW_CACHE: /cache
+      PW_BIND: 0.0.0.0
+    volumes:
+      - physical_web_cache:/cache
+    ports:
+      - "127.0.0.1:8008:8008"
+    init: true
+    shm_size: 1g
+volumes:
+  physical_web_cache:

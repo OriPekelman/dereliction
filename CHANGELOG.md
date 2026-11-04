@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-11-04
+- Installable: `dist/physical-web.bundle.min.js` is an all-in-one build (matter-js + html2canvas included);
+  npm package with `exports`; `npm run build`.
+- Zero-config: `<script src=… data-attach data-idle="8000" data-preset="Avalanche">` attaches on load; every
+  `attach()` option works as a `data-` attribute.
+- Demo page switches presets live (buttons and keys 1–5, Esc to put the page back); zero-config demo page.
+- Generic capture-service deployment files under `deploy/docker/`.
+
 ## 0.3.1 — 2026-11-04
 - Frames no longer paint over the words that fell past them: particles are drawn by depth (text in front,
   loose sand behind it, shapes, then frames) instead of by home pixel. The context now has a depth buffer.
@@ -14,7 +22,7 @@
 - New author role `--physics: frame`: the element is a hollow rigid block (compound body of four edges); the
   words inside are their own bodies and fall within it, the block's background rides with the block (#1).
 - Word bodies are padded 3 px so underlines travel with their word; in rigid mode, ink that belongs to no body
-  pours as sand instead of staying pinned (both upstreamed from the pekelman.com vendored copy).
+  pours as sand instead of staying pinned.
 
 ## 0.2.0 — 2026-11-03
 - Library: `PhysicalWeb.attach()` overlays a live page after idle and plays a preset; exits on scroll/wheel/key.

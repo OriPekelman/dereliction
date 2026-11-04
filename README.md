@@ -1,135 +1,147 @@
-# Physical Web — pixels with mass
+# Physical Web
 
-Give a web page physics. Every pixel of the rendered page becomes a GPU particle; glyphs,
-images and author-marked elements become rigid bodies. Gravity by colour, wind with curl-noise
-turbulence, viscosity by lightness, sand that pours (endlessly, if you like) over solid letters,
-letters that fall into a pile. Works as a playground, and as a drop-in library that "happens" to
-a live page after a few idle seconds.
+**Give the pixels of a web page mass.**
 
+Leave a page alone for a few seconds and it comes apart: every pixel becomes a particle,
+every word a rigid body. Words tumble into a pile, the paper pours over them like sand and
+settles on the letters. Scroll, and the page puts itself back together.
+
+One script tag. No server, no build step. Runs on the GPU (WebGL2) with a million particles.
+
+**Demo:** https://oripekelman.github.io/physical-web/ · **Playground:** https://oripekelman.github.io/physical-web/web/
+
+## Install
+
+The quickest way: one tag, zero configuration. The bundle includes its two dependencies
+(matter-js for rigid bodies, html2canvas for capturing the page).
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/physical-web/dist/physical-web.bundle.min.js" defer
+        data-attach data-idle="8000" data-preset="Avalanche"></script>
 ```
-lib/physical-web.js   the library (plain script, no build; ~45 KB)
-web/index.html        playground / control panel
-web/live-demo.html    a normal page with the library attached (idle → avalanche)
-web/physics-test.html fixture for the CSS --physics roles
-server.py             optional capture service (Playwright) + static file server
-prerender.py          optional build-time captures for a static site
-deploy/evo/           Dockerfile + compose for the capture service (not deployed)
-```
 
-## Run locally
+Or download `dist/physical-web.bundle.min.js` and host it yourself. Every `attach()` option can
+be given as a `data-` attribute (`data-once`, `data-min-width="700"`, `data-preset="Letter pile"`…).
+
+With npm:
 
 ```sh
-uv sync && uv run playwright install chromium   # once
-uv run server.py                                # http://localhost:8008/web/
+npm i physical-web
+```
+```js
+import PhysicalWeb from 'physical-web';     // or: const PhysicalWeb = require('physical-web')
+PhysicalWeb.attach({ idle: 8000, preset: 'Avalanche' });
 ```
 
-The playground captures any URL through the server, or captures its own DOM with no server
-(button "Capture this page"), or draws a built-in demo page. The live demo at
-`/web/live-demo.html` needs no server at all.
+The unbundled build (`dist/physical-web.min.js`, 36 KB) loads matter-js and html2canvas on
+demand from cdnjs the first time the effect starts, or uses the copies already on your page.
+Point `matterUrl` / `html2canvasUrl` at your own copies to stay first-party.
 
-## Library
+## Tell it what holds and what falls
 
-```html
-<script src="/js/physical-web.js"></script>
-<script>
-  PhysicalWeb.attach({
-    idle: 8000,            // ms without pointer/key/scroll activity before it starts
-    preset: 'Avalanche',   // any PhysicalWeb.PRESETS name, or a params object
-    capture: 'auto',       // 'auto' = static manifest if one matches, else client-side DOM
-    manifest: '/physics/manifest.json',   // optional, from prerender.py
-    // server: 'https://physics.example.com/capture', capture: 'server'   // optional
-    exitOn: ['wheel', 'keydown', 'touchmove', 'scroll'],   // ends the effect: reassemble, then remove overlay
-    once: false,
-  });
-</script>
-```
-
-`attach()` returns a controller: `play(preset)`, `stop()`, `arm()`, `disarm()`, `.sim`, `.active`.
-While the effect runs, dragging on the page pushes particles and grabs/throws bodies; scrolling,
-the wheel or a key reassembles the page and removes the overlay.
-
-Lower-level pieces, all on `PhysicalWeb`:
-
-| | |
-|---|---|
-| `new Sim(canvas, {params, onStats})` | the simulation; `load(scene)`, `applyPreset(name|obj)`, `set(partial)`, `scatter(sel)`, `reset()`, `start()/stop()`, `fit()`, `dispose()` |
-| `captureDom({resolution, ignore})` | client-only: renders the viewport twice with html2canvas (with and without text) and extracts rects from the live DOM |
-| `captureServer({endpoint, url, width, height, scrollY})` | asks server.py for a headless-Chromium capture |
-| `captureStatic({manifest, path})` | uses prerendered full-page captures, cropped to the current scroll position; `null` if no exact-width match |
-| `extractRects(document)` | per-glyph rects + shapes with roles; the server and prerender inject this same function into the page |
-| `PRESETS`, `DEFAULTS`, `SEL` | presets, parameter defaults, selector names |
-
-Runtime dependencies are loaded from cdnjs when missing: matter-js 0.20.0 (rigid bodies) and
-html2canvas 1.4.1 (DOM capture). Vendor them next to the library for a static site and pass
-`matterUrl` / `html2canvasUrl`, or just include them with `<script>` tags before the library.
-
-Browser support: WebGL2 with `EXT_color_buffer_float` (Chrome, Firefox, Safari 15+). The particle
-count is the viewport area; `attach` lowers the capture resolution automatically above
-`maxParticles` (1.4M).
-
-### Author control in the page
-
-An inheriting CSS custom property or a data attribute decides what an element is:
+An inheriting CSS custom property, or a `data-physics` attribute, on any element:
 
 ```css
-header        { --physics: solid; }   /* one static block: never moves, sand piles on it */
-.card         { --physics: rigid; }   /* the whole element is one rigid body, text included */
-.block        { --physics: frame; }   /* a hollow rigid block: it falls as one body and its words fall inside it */
-.footnotes    { --physics: sand;  }   /* its text is loose particles, never a body */
+header   { --physics: solid; }   /* one static block: never moves, sand piles on it          */
+.card    { --physics: rigid; }   /* the whole element is one rigid body, text included       */
+.panel   { --physics: frame; }   /* a hollow block: falls as a box, its words fall inside it */
+.fine    { --physics: sand;  }   /* its text is loose grains, never a body                   */
 ```
-```html
-<aside data-physics="solid">…</aside>
+
+Defaults: words are bodies, `img/svg/video/canvas` are rigid shapes, everything else is sand.
+
+## Behaviour
+
+```js
+const ctl = PhysicalWeb.attach({
+  idle: 8000,                 // ms without pointer/key/scroll activity before it starts
+  preset: 'Avalanche',        // see presets below, or pass a params object
+  exitOn: ['wheel', 'keydown', 'touchmove', 'scroll'],   // what brings the page back
+  exitPreset: 'Reassemble',   // how it comes back (then the overlay is removed)
+  once: false,                // true: one show per page load
+  minWidth: 0,                // skip on narrow screens
+  reducedMotion: 'respect',   // nothing happens under prefers-reduced-motion
+  capture: 'auto',            // 'dom' (client-side), 'static' (prerendered manifest), 'server'
+  onStart(sim) {}, onEnd() {}, onError(e) {},
+});
+ctl.play('Letter pile');  ctl.stop();  ctl.arm();  ctl.disarm();  ctl.sim;  ctl.active;
 ```
-Defaults: text glyphs are bodies (lines, words or letters by `granularity`), `img/svg/video/canvas`
-are rigid shapes, everything else is sand.
+
+While it runs, dragging on the page pushes the sand around and grabs or throws bodies.
+It does nothing on browsers without WebGL2, and nothing when the viewer prefers reduced motion.
 
 ### Presets
 
-| Preset | What it does |
+| Preset | What happens |
 |---|---|
-| Ink falls | dark pixels get gravity, light pixels get viscosity |
-| Sandstorm | wind on non-text, text pinned, L\* as depth with lift and shading |
-| Sand pour | background thrown above the page and poured onto solid, pinned letters |
-| Endless pour | same, but what leaves the bottom re-enters at the top, forever |
-| Hourglass | endless pour through a narrow spout (`spoutX`, `spoutW`) |
-| Collapse | lines of text and images fall as rigid bodies |
-| Letter pile | every glyph is its own rigid body |
-| Avalanche | words fall as rigid bodies while the background pours over them as sand |
-| Melt | gravity on everything, drag proportional to lightness² |
-| Reassemble | critically damped spring back to the original page |
+| **Avalanche** | words fall as rigid bodies while the paper pours over them as sand |
+| **Letter pile** | every glyph is its own rigid body |
+| **Collapse** | whole lines and images fall, with a little wind |
+| **Sand pour** | the paper is thrown above the page and poured onto solid, pinned letters |
+| **Endless pour** | same, but what leaves the bottom re-enters at the top, forever |
+| **Hourglass** | endless pour through a narrow spout (`spoutX`, `spoutW`) |
+| **Sandstorm** | wind on everything that is not text; lightness becomes depth, lifted grains brighten |
+| **Ink falls** | only the dark pixels get gravity; the light ones are viscous |
+| **Melt** | gravity on everything, drag by lightness |
+| **Reassemble** | a critically damped spring back to the original page |
 
-## Three ways to get the pixels
+Everything a preset sets is a parameter you can set yourself with `sim.set({...})`: gravity, wind
+direction and turbulence, viscosity, spring, each gated by a selector (all / text / non-text /
+dark / light), plus rigid-body granularity (lines, words, letters), solidity, pile depth, recycling,
+backdrop colour, mouse force. The playground exposes all of them.
 
-1. **Client-only (`dom`)** — html2canvas re-renders the live DOM in the browser. No server,
-   exact viewport size, exact scroll position. Costs 1–3 s of CPU on a big page (done during idle),
-   and html2canvas is a re-implementation of CSS painting, so exotic CSS may differ from what the
-   browser showed. Fonts already loaded by the page render fine. This is the default.
-2. **Prerendered (`static`)** — `prerender.py` renders each page at a set of widths with real
-   Chromium at build time and writes PNGs + rects + `manifest.json` into the site. Pixel-perfect,
-   zero runtime cost, but only used when `window.innerWidth` matches a prerendered width exactly
-   (layout depends on width); otherwise it falls back to `dom`.
-   ```sh
-   uv run prerender.py --base http://localhost:8080 --out ../pekelman.com/physics \
-       --pages /index.htm /poemes.htm --widths 1280 1440 1512 1680 1920
-   ```
-3. **Server (`server`)** — `server.py` renders any URL on demand in headless Chromium, with an
-   allowlist (`PW_ALLOW`), a capture cache (`PW_CACHE`) and CORS. Pixel-perfect at any size, but
-   it is a public service to run and it adds a round trip. `deploy/evo/` has a Dockerfile and a
-   compose file for running it on evo behind the existing cloudflared tunnel; nothing is deployed.
+## Lower-level API
 
-For a static site like pekelman.com the recommendation is 1 (+ 2 for the common widths). No
-service on evo is needed for that.
+| | |
+|---|---|
+| `new PhysicalWeb.Sim(canvas, {params, onStats})` | the simulation on your own canvas: `load(scene)`, `applyPreset(name|obj)`, `set(partial)`, `scatter(sel)`, `reset()`, `start()/stop()`, `fit()`, `dispose()` |
+| `captureDom({resolution, ignore})` | client-side scene: renders the viewport twice with html2canvas (with and without text) and reads glyph boxes from the live DOM |
+| `captureStatic({manifest})` | scene from prerendered full-page captures (see below), cropped to the scroll position |
+| `captureServer({endpoint, url, width, height})` | scene from the optional capture service |
+| `extractRects(document)` | per-glyph rects and shapes with roles |
+| `PRESETS`, `DEFAULTS`, `SEL` | presets, parameter defaults, selector names |
+
+A *scene* is `{ shot, notext, chars, shapes, w, h }`: two renders of the page (canvas or image),
+glyph rects `[x, y, w, h, role]` and shape rects.
+
+## Pixel-perfect captures (optional)
+
+Client-side capture re-paints the page with html2canvas, which is faithful for most pages but not
+for every CSS feature. Two optional ways to use the browser's own rendering instead:
+
+- **Prerender at build time.** `prerender.py` renders your pages at a list of widths with
+  headless Chromium and writes PNGs, glyph rects and a `manifest.json` into your site. The
+  library uses them when the window width matches exactly and falls back to client-side otherwise.
+  ```sh
+  uv run prerender.py --base http://localhost:8080 --out ./public/physics --pages / /about/ --widths 1280 1440 1512 1680 1920
+  ```
+- **A capture service.** `server.py` renders any allowed URL on demand (`PW_ALLOW`, `PW_CACHE`);
+  `deploy/docker/` has a Dockerfile and compose file. Use it with `capture: 'server'`.
+
+## Development
+
+```sh
+uv sync && uv run playwright install chromium   # Python side: capture server, prerender, tests
+uv run server.py                                # http://localhost:8008/web/  (playground)
+npm install && npm run build                    # dist/ (minified lib + all-in-one bundle)
+uv run python tests/smoke.py                    # headless smoke test (needs the server running)
+```
 
 ## How it works
 
-Two screenshots, one with all text made transparent, are diffed into a pixel-exact ink mask.
-Particle state lives in RGBA32F ping-pong framebuffers; one fragment shader is the physics step,
-one vertex shader draws `W×H` points via `gl_VertexID`. Every force is gated by a selector
-(all / text / non-text / dark / light, with CIE L\* computed in-shader). Rigid bodies live in
-matter.js; their transforms are uploaded as a small float texture each frame and particles inside a
-body follow it. The bodies are also rasterised each frame into an obstacle map (glyph bodies
-textured with the ink mask), which free particles collide with, so sand piles on the letters even
-while the letters are falling. Points are drawn with a depth test, text bodies in front, then loose
-particles, then shapes and frames, so a block's ground never paints over the words that fell past it;
-each frame also draws its ground colour as a quad behind its particles, closing the holes its words
-left. With `recycle`, particles that leave the page re-enter at the top through the spout.
+Two renders of the page, one with the text made transparent, are diffed into a pixel-exact ink
+mask. Particle state lives in float textures; one fragment shader is the physics step, one vertex
+shader draws `W×H` points. Every force is gated by a selector (CIE L\* is computed in-shader, so
+"gravity on the dark pixels" is a uniform). Rigid bodies live in matter.js; their transforms are
+uploaded as a small texture each frame and the particles inside a body follow it. The bodies are
+also rasterised every frame into an obstacle map (glyph bodies textured with the ink mask), which
+is what the sand piles on, even while the letters are falling. Points are drawn with a depth test, text
+bodies in front, then loose particles, then shapes and frames, so a block's ground never paints over the
+words that fell past it; each frame also draws its ground colour as a quad behind its particles.
+
+Chrome, Firefox and Safari 15+ (WebGL2 with `EXT_color_buffer_float`).
+
+## License
+
+MIT © Ori Pekelman. Bundled: [matter-js](https://brm.io/matter-js/) (MIT) and
+[html2canvas](https://html2canvas.hertzen.com/) (MIT).

@@ -5,8 +5,8 @@ For each page and viewport width, renders the FULL page (viewport height = docum
 capped) twice (with and without text) and extracts glyph/shape rects with the library's
 own extractor, then writes a manifest the client reads via PhysicalWeb.captureStatic().
 
-  uv run prerender.py --base http://localhost:8080 --out ../pekelman.com/physics \
-      --pages /index.htm /poemes.htm --widths 1280 1440 1512 1680 1920
+  uv run prerender.py --base http://localhost:8080 --out ./public/physics \
+      --pages / /about/ --widths 1280 1440 1512 1680 1920
 
 At runtime the static backend is only used when window.innerWidth matches one of the widths
 exactly (layout depends on width); otherwise the library falls back to client-side DOM capture.

@@ -53,6 +53,13 @@ with sync_playwright() as p:
     pg.wait_for_timeout(3500)
     check(not pg.evaluate("ctl.active") and not pg.evaluate("!!document.querySelector('.physical-web-overlay')"), "overlay removed after exit")
     pg.close()
+
+    # zero-config: bundled build + data-attach attributes, no other script on the page
+    pg = b.new_page(viewport={"width": 1100, "height": 760}); wire(pg)
+    pg.goto(f"{BASE}/web/auto-demo.html", wait_until="load"); pg.wait_for_timeout(8000)
+    auto = pg.evaluate("() => ({ bundled: !!(window.Matter && window.html2canvas), auto: !!PhysicalWeb.auto, active: !!(PhysicalWeb.auto && PhysicalWeb.auto.active), preset: PhysicalWeb.auto && PhysicalWeb.auto.sim && PhysicalWeb.auto.sim.presetName, frames: PhysicalWeb.auto && PhysicalWeb.auto.sim ? PhysicalWeb.auto.sim.bodies.filter(b => b.plugin.home.role === 3).length : 0 })")
+    check(auto["bundled"] and auto["active"] and auto["preset"] == "Avalanche" and auto["frames"] == 1, f"zero-config bundle + data-attach: {json.dumps(auto)}")
+    pg.close()
     b.close()
 
 check(not errors, "no JS errors" if not errors else "JS errors: " + " | ".join(errors[:5]))

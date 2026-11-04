@@ -11,7 +11,7 @@ GET /capture?url=...&w=1280&h=800&y=0 which:
 The client diffs the two screenshots to get a pixel-exact "ink" mask.
 
 Run:  uv run server.py [port]      (first time: uv run playwright install chromium)
-Env:  PW_ALLOW=https://pekelman.com/,https://www.pekelman.com/   restrict capturable URLs (prefixes; default: any)
+Env:  PW_ALLOW=https://example.com/,https://www.example.com/   restrict capturable URLs (prefixes; default: any)
       PW_CACHE=/path/to/dir                                      cache captures by url+size (static sites)
       PW_BIND=0.0.0.0                                            bind address (default 127.0.0.1)
 """

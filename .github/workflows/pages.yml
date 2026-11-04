@@ -13,7 +13,7 @@ jobs:
     environment: { name: github-pages, url: "${{ steps.deployment.outputs.page_url }}" }
     steps:
       - uses: actions/checkout@v4
-      - run: mkdir -p _site && cp -r index.html lib dist web _site/ && rm -rf _site/web/physics
+      - run: mkdir -p _site && cp -r index.html lib dist web _site/ && cp LICENSE _site/ && rm -rf _site/web/physics
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }

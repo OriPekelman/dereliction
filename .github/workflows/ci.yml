@@ -8,7 +8,9 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with: { enable-cache: false }
       - run: uv sync && uv run playwright install --with-deps chromium
-      - run: node --check lib/physical-web.js
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci && npm run build && git diff --stat --exit-code dist/
       - run: (uv run server.py 8008 > server.log 2>&1 &) && sleep 6 && curl -sf http://localhost:8008/health
       - run: uv run python tests/smoke.py
       - if: always()

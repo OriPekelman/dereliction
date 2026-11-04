@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Zero-config demo — Physical Web</title>
+<style>
+  body { margin: 0; font: 19px/1.5 Georgia, serif; color: #222; background: #fbfaf7; }
+  header { --physics: solid; background: #222; color: #fff; padding: 16px 5vw; font: bold 16px Helvetica, Arial, sans-serif; letter-spacing: .08em; }
+  main { max-width: 820px; margin: 40px auto; padding: 0 5vw; }
+  h1 { font-size: 44px; line-height: 1.05; }
+  .panel { --physics: frame; border: 2px solid #222; padding: 16px 18px; margin: 24px 0; background: #fff; }
+  pre { --physics: rigid; background: #222; color: #eee; padding: 14px; font-size: 14px; overflow: auto; }
+</style></head>
+<body>
+<header>ZERO-CONFIG INSTALL</header>
+<main>
+  <h1>This page uses one script tag and nothing else.</h1>
+  <p>The tag below is the whole integration: the bundled build with matter-js and html2canvas inside, and the options as data attributes. Wait three seconds.</p>
+<pre>&lt;script src="../dist/physical-web.bundle.min.js" defer
+        data-attach data-idle="3000" data-preset="Avalanche"&gt;&lt;/script&gt;</pre>
+  <div class="panel">This panel is a <b>frame</b>: it falls as a box and the words inside it fall within it.</div>
+  <p>Scroll, press a key or use the wheel to bring the page back.</p>
+</main>
+<script src="../dist/physical-web.bundle.min.js" defer data-attach data-idle="3000" data-preset="Avalanche"></script>
+</body></html>
