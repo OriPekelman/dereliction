@@ -54,6 +54,26 @@ with sync_playwright() as p:
     check(not pg.evaluate("ctl.active") and not pg.evaluate("!!document.querySelector('.physical-web-overlay')"), "overlay removed after exit")
     pg.close()
 
+    # root demo page (GitHub Pages): buttons, keys, Esc, honest idle status
+    pg = b.new_page(viewport={"width": 1280, "height": 800}); wire(pg)
+    pg.goto(f"{BASE}/index.html", wait_until="load"); pg.wait_for_timeout(500)
+    idle = pg.text_content("#status") or ""
+    check(idle and "1–5" not in idle and "presets" not in idle, f"idle status offers no keys: {idle}")
+    pg.click("#presets button[data-preset='Melt']")
+    try:  # poll for Melt, giving up before the 5 s idle timer could start Avalanche on its own
+        pg.wait_for_function("ctl.active && ctl.sim && ctl.sim.presetName === 'Melt'", timeout=4000)
+    except Exception:
+        pass
+    root = pg.evaluate("() => ({ active: ctl.active, preset: ctl.sim && ctl.sim.presetName })")
+    check(root["active"] and root["preset"] == "Melt", f"root demo: Melt button starts the effect: {json.dumps(root)}")
+    pg.keyboard.press("2"); pg.wait_for_timeout(300)
+    check(pg.evaluate("ctl.sim && ctl.sim.presetName") == "Letter pile", "root demo: key 2 switches to Letter pile")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    check(pg.evaluate("ctl.sim && ctl.sim.presetName") == "Reassemble", "root demo: Esc reassembles")
+    pg.wait_for_timeout(3500)
+    check(not pg.evaluate("ctl.active") and not pg.evaluate("!!document.querySelector('.physical-web-overlay')"), "root demo: overlay removed after Esc")
+    pg.close()
+
     # zero-config: bundled build + data-attach attributes, no other script on the page
     pg = b.new_page(viewport={"width": 1100, "height": 760}); wire(pg)
     pg.goto(f"{BASE}/web/auto-demo.html", wait_until="load"); pg.wait_for_timeout(8000)

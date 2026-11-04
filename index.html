@@ -5,18 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Physical Web — give your pixels mass</title>
 <meta name="description" content="A drop-in script that turns a web page into a million particles and its words into rigid bodies. Sand pours over the letters. Words pile up. Scroll and it reassembles.">
+<meta name="theme-color" content="#f4f1ea">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Physical Web — give your pixels mass">
+<meta property="og:description" content="Leave the page alone and it falls apart: every pixel a particle, every word a rigid body. Scroll, and it puts itself back together.">
+<meta property="og:url" content="https://oripekelman.github.io/physical-web/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Physical Web — give your pixels mass">
+<meta name="twitter:description" content="Leave the page alone and it falls apart: every pixel a particle, every word a rigid body. Scroll, and it puts itself back together.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b1b1f'/%3E%3Ccircle cx='16' cy='21' r='7' fill='%23b4432a'/%3E%3C/svg%3E">
 <style>
   :root { --ink: #1b1b1f; --paper: #f4f1ea; --accent: #b4432a; --muted: #6b6560; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { background: var(--paper); }
   body { color: var(--ink); background: var(--paper); font: 19px/1.55 Georgia, "Iowan Old Style", "Times New Roman", serif; }
-  header { --physics: solid; display: flex; justify-content: space-between; align-items: baseline; padding: 20px 6vw; border-bottom: 2px solid var(--ink); font-family: Helvetica, Arial, sans-serif; }
+  header { --physics: solid; display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; align-items: baseline; padding: 20px 6vw; border-bottom: 2px solid var(--ink); font-family: Helvetica, Arial, sans-serif; }
   header b { letter-spacing: .06em; font-size: 15px; }
-  header nav a { color: var(--ink); text-decoration: none; margin-left: 22px; font-size: 15px; }
+  header nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+  header nav a { color: var(--ink); text-decoration: none; font-size: 15px; }
+  header nav a:hover { color: var(--accent); }
   main { max-width: 1040px; margin: 0 auto; padding: 56px 6vw 80px; }
   h1 { font-size: clamp(42px, 7vw, 92px); line-height: .98; letter-spacing: -.02em; margin-bottom: 22px; }
   h1 em { color: var(--accent); font-style: italic; }
-  .lede { font-size: 24px; max-width: 760px; margin-bottom: 36px; }
+  .lede { font-size: 24px; max-width: 760px; margin-bottom: 30px; }
   .cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 44px; align-items: start; }
   @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
   h2 { font-family: Helvetica, Arial, sans-serif; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 30px 0 10px; }
@@ -24,17 +35,33 @@
   pre { --physics: rigid; background: var(--ink); color: #f1eee6; padding: 16px 18px; border-radius: 6px; font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; overflow-x: auto; margin: 10px 0 18px; }
   code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9em; background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; }
   pre code { background: none; padding: 0; }
+  .snippet { position: relative; }
+  .snippet pre { padding-right: 84px; }
+  .copy { position: absolute; top: 10px; right: 10px; font: 12px Helvetica, Arial, sans-serif; color: #f1eee6; background: transparent; border: 1px solid rgba(241,238,230,.5); border-radius: 4px; padding: 4px 9px; cursor: pointer; }
+  .copy:hover { border-color: #f1eee6; }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .card { --physics: rigid; background: #fff; border: 2px solid var(--ink); border-radius: 8px; padding: 18px 20px; box-shadow: 6px 6px 0 var(--ink); font-size: 17px; }
   .card strong { display: block; margin-bottom: 6px; font-family: Helvetica, Arial, sans-serif; }
   .fine { --physics: sand; color: var(--muted); font-style: italic; font-size: 16px; }
+  .small { font-size: 16px; }
   table { border-collapse: collapse; width: 100%; font-size: 16px; margin-bottom: 18px; }
   td { padding: 6px 8px 6px 0; vertical-align: top; border-bottom: 1px solid rgba(0,0,0,.12); }
   td:first-child { white-space: nowrap; font-family: ui-monospace, Menlo, monospace; font-size: 14px; }
-  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 24px; }
-  .buttons a, .buttons button { font: 15px Helvetica, Arial, sans-serif; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px; border: 0; cursor: pointer; text-decoration: none; }
-  .buttons .alt { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
-  .status { position: fixed; right: 14px; bottom: 12px; font: 13px Helvetica, Arial, sans-serif; color: #fff; background: var(--ink); padding: 7px 11px; border-radius: 6px; z-index: 2147483001; pointer-events: none; opacity: .9; }
-  footer { border-top: 2px solid var(--ink); padding: 20px 6vw; font: 14px Helvetica, Arial, sans-serif; color: var(--muted); }
+  .linkish { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .linkish:hover { text-decoration-style: solid; }
+  .linkish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 10px; }
+  .buttons a, .buttons button { font: 15px Helvetica, Arial, sans-serif; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 6px; border: 2px solid var(--ink); cursor: pointer; text-decoration: none; }
+  .buttons .primary { font-weight: bold; }
+  .buttons a:hover, .buttons button:hover { background: var(--accent); border-color: var(--accent); }
+  .buttons .alt { background: transparent; color: var(--ink); }
+  .buttons .alt:hover { background: transparent; color: var(--accent); border-color: var(--accent); }
+  .buttons a:focus-visible, .buttons button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button:disabled, .buttons button:disabled:hover { opacity: .45; cursor: not-allowed; background: transparent; color: var(--ink); border-color: var(--ink); }
+  .linkish:disabled { color: var(--ink); text-decoration: none; }
+  .hint { font-style: italic; color: var(--muted); font-size: 17px; margin-bottom: 30px; }
+  .status { position: fixed; right: 14px; bottom: 12px; max-width: calc(100vw - 28px); font: 13px Helvetica, Arial, sans-serif; color: #fff; background: var(--ink); padding: 7px 11px; border-radius: 6px; z-index: 2147483001; pointer-events: none; opacity: .9; }
+  footer { border-top: 2px solid var(--ink); padding: 20px 6vw 64px; font: 14px Helvetica, Arial, sans-serif; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -42,26 +69,30 @@
 
 <main>
   <h1>Give your pixels <em>mass.</em></h1>
-  <p class="lede">Leave this page alone for five seconds. Every pixel becomes a particle, every word a rigid body, and the paper pours over the letters like sand. Scroll, and it puts itself back together.</p>
+  <p class="lede">Every pixel becomes a particle, every word a rigid body, and the paper pours over the letters like sand. Scroll, and the page puts itself back together.</p>
   <div class="buttons" id="presets">
-    <button data-preset="Avalanche">Avalanche now</button>
-    <button class="alt" data-preset="Letter pile">Letter pile</button>
-    <button class="alt" data-preset="Hourglass">Hourglass</button>
-    <button class="alt" data-preset="Sandstorm">Sandstorm</button>
-    <button class="alt" data-preset="Melt">Melt</button>
+    <button type="button" class="primary" data-preset="Avalanche">Avalanche now</button>
+    <button type="button" class="alt" data-preset="Letter pile">Letter pile</button>
+    <button type="button" class="alt" data-preset="Hourglass">Hourglass</button>
+    <button type="button" class="alt" data-preset="Sandstorm">Sandstorm</button>
+    <button type="button" class="alt" data-preset="Melt">Melt</button>
     <a class="alt" href="web/index.html">Playground with every knob →</a>
   </div>
+  <p class="hint">…or just stop moving for five seconds.</p>
 
   <div class="cols">
     <div>
       <h2>What it is</h2>
-      <p>A single script, no build step, no server. It renders the viewport to pixels in the browser, hands a million of them to a WebGL2 simulation, and gives the text to a rigid-body engine. Gravity can apply to dark pixels only. Wind can blow away everything that is not text. Letters can fall into a pile. Sand can pour over them for as long as you like.</p>
-      <p>It is meant to <em>happen</em> to an ordinary page: after a while without any activity, the page you were reading comes apart; the first scroll or key press brings it back, and the page is an ordinary page again.</p>
+      <p>It renders the viewport to pixels in the browser, hands a million of them to a WebGL2 simulation, and gives the words to a rigid-body engine. Gravity can pull on dark pixels only, wind can blow away everything that is not text, letters can fall into a pile, and sand can pour over them for as long as you like.</p>
+      <p>It is meant to <em>happen</em> to an ordinary page: leave it idle and it comes apart; the first scroll or key press brings it back.</p>
 
       <h2>Use it</h2>
-<pre><code>&lt;script src="physical-web.bundle.min.js" defer
+      <div class="snippet">
+<pre id="install"><code>&lt;script src="https://cdn.jsdelivr.net/npm/physical-web/dist/physical-web.bundle.min.js" defer
         data-attach data-idle="8000" data-preset="Avalanche"&gt;&lt;/script&gt;</code></pre>
-      <p>One file, one tag, no build step. Or <code>npm i physical-web</code> and call <code>PhysicalWeb.attach({…})</code> yourself.</p>
+        <button type="button" class="copy" id="copy">Copy</button>
+      </div>
+      <p>One file, one tag, no build step, no server. Or <code>npm i physical-web</code> and call <code>PhysicalWeb.attach({…})</code> yourself.</p>
       <p>Tell it what should hold and what should go, in your own stylesheet:</p>
 <pre><code>header   { --physics: solid; }   /* never moves; sand piles on it      */
 .card    { --physics: rigid; }   /* one body, falls as a block         */
@@ -71,51 +102,77 @@
 
       <h2>Presets</h2>
       <table>
-        <tr><td>Avalanche</td><td>words fall as rigid bodies while the paper pours over them as sand</td></tr>
-        <tr><td>Letter pile</td><td>every glyph is its own body</td></tr>
-        <tr><td>Hourglass</td><td>an endless trickle of sand through a narrow spout, onto the text</td></tr>
-        <tr><td>Sandstorm</td><td>wind on everything that is not text; lightness becomes depth</td></tr>
-        <tr><td>Ink falls</td><td>only the dark pixels get gravity; the light ones are viscous</td></tr>
-        <tr><td>Melt</td><td>gravity on everything, drag by lightness</td></tr>
-        <tr><td>Reassemble</td><td>a critically damped spring back to the page</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Avalanche">Avalanche</button></td><td>words fall as rigid bodies while the paper pours over them as sand</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Letter pile">Letter pile</button></td><td>every glyph is its own body</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Collapse">Collapse</button></td><td>every line becomes a block and tumbles away in a light breeze</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Hourglass">Hourglass</button></td><td>an endless trickle of sand through a narrow spout, onto the text</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Sand pour">Sand pour</button></td><td>the paper is thrown up and pours down as sand onto text that holds</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Endless pour">Endless pour</button></td><td>the same, but the sand keeps coming back in across the top edge</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Sandstorm">Sandstorm</button></td><td>wind on everything that is not text; lightness becomes depth</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Ink falls">Ink falls</button></td><td>only the dark pixels get gravity; the light ones are viscous</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Melt">Melt</button></td><td>gravity on everything, drag by lightness</td></tr>
+        <tr><td><button type="button" class="linkish" data-preset="Reassemble">Reassemble</button></td><td>a critically damped spring back to the page</td></tr>
       </table>
     </div>
     <aside>
       <div class="card"><strong>This card is rigid</strong>Text, border and shadow fall together as one block and land on whatever got to the bottom first. Drag it with the mouse while things are falling.</div>
       <h2>Under the hood</h2>
-      <p style="font-size:16px">Two renders of the page, one with the text made transparent, are diffed into a pixel-exact ink mask. Particle state lives in float textures; one fragment shader is the physics step. Bodies come from matter.js and are rasterised every frame into an obstacle map, which is what the sand piles on. Chrome, Firefox and Safari 15+, anything with WebGL2.</p>
-      <p style="font-size:16px">Prefer pixel-perfect captures? A build-time prerender or a small Playwright service are included too. Neither is required.</p>
+      <p class="small">Two renders of the page, one with the text made transparent, are diffed into a pixel-exact ink mask. Particle state lives in float textures; one fragment shader is the physics step. Bodies come from matter.js and are rasterised every frame into an obstacle map, which is what the sand piles on. Chrome, Firefox and Safari 15+, anything with WebGL2.</p>
+      <p class="small">Prefer pixel-perfect captures? A build-time prerender or a small Playwright service are included too. Neither is required.</p>
     </aside>
   </div>
 </main>
-<footer>MIT licensed · by Ori Pekelman · respects <code>prefers-reduced-motion</code></footer>
-<div class="status" id="status">idle 5 s → it falls · scroll or Esc → it returns · 1–5 switch presets</div>
+<footer>MIT licensed · by Ori Pekelman · respects <code>prefers-reduced-motion</code><span id="ver"></span></footer>
+<div class="status" id="status">idle 5 s → it falls · or press a button</div>
 
 <script src="lib/physical-web.js"></script>
 <script>
   const statusEl = document.getElementById('status');
-  const IDLE = 'idle 5 s → it falls · scroll or Esc → it returns · 1–5 switch presets';
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
+  const IDLE = 'idle 5 s → it falls · or press a button';
+  const BACK = TOUCH ? 'scroll to put it back' : '1–5 presets · R reassemble · scroll or Esc to put it back';
   const QUICK = ['Avalanche', 'Letter pile', 'Hourglass', 'Sandstorm', 'Melt'];
+  let leaving = false;
   const ctl = PhysicalWeb.attach({
     idle: 5000, preset: 'Avalanche', capture: 'dom',
     exitOn: ['wheel', 'touchmove', 'scroll'],        // keys are used to switch presets; Esc exits
-    onStart: (sim) => { statusEl.textContent = 'drag to push the sand or throw a word · 1–5 presets · scroll or Esc to put it back'; },
-    onEnd: () => { statusEl.textContent = IDLE; },
+    onStart: () => { leaving = false; statusEl.textContent = TOUCH ? 'swipe or scroll to put it back' : 'drag to push the sand or throw a word · ' + BACK; },
+    onEnd: () => { leaving = false; statusEl.textContent = IDLE; },
     onError: (e) => { statusEl.textContent = 'could not start: ' + e.message; },
   });
-  if (ctl.inert) statusEl.textContent = 'physics is off here (reduced motion, or no WebGL2)';
-  const show = (name) => { statusEl.textContent = name + ' · 1–5 presets · scroll or Esc to put it back'; };
-  document.getElementById('presets').addEventListener('click', async (e) => {
-    const b = e.target.closest('button[data-preset]'); if (!b) return;
-    e.preventDefault(); const sim = await ctl.play(b.dataset.preset); if (sim) show(b.dataset.preset);
+  if (ctl.inert) {
+    statusEl.textContent = 'physics is off here (reduced motion, or no WebGL2)';
+    for (const b of document.querySelectorAll('button[data-preset]')) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); }
+  }
+  const show = (name) => { statusEl.textContent = name + ' · ' + BACK; };
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-preset]'); if (!b || b.disabled) return;
+    e.preventDefault(); leaving = false;
+    const sim = await ctl.play(b.dataset.preset); if (sim) show(b.dataset.preset);
   });
   addEventListener('keydown', (e) => {
-    if (!ctl.active) return;
-    if (e.key === 'Escape') ctl.stop(false);
+    if (!ctl.active || leaving || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Escape') { leaving = true; ctl.stop(false); statusEl.textContent = 'putting it back…'; return; }
     const i = '12345'.indexOf(e.key);
     if (i >= 0 && ctl.sim) { ctl.sim.applyPreset(QUICK[i]); show(QUICK[i]); }
     if (e.key.toLowerCase() === 'r' && ctl.sim) { ctl.sim.applyPreset('Reassemble'); show('Reassemble'); }
   });
+
+  const copyBtn = document.getElementById('copy');
+  const snippet = document.getElementById('install');
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(snippet.textContent);
+      copyBtn.textContent = 'Copied';
+    } catch (err) {
+      const r = document.createRange(); r.selectNodeContents(snippet);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      copyBtn.textContent = 'Selected';
+    }
+    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1600);
+  });
+
+  if (PhysicalWeb.version) document.getElementById('ver').textContent = ' · v' + PhysicalWeb.version;
   window.ctl = ctl;
 </script>
 </body>
