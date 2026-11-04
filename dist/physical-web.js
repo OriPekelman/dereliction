@@ -21,7 +21,7 @@
 (function (global) {
 'use strict';
 
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const CDN = {
   matter: 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js',
   html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
@@ -245,7 +245,7 @@ void main(){
   int role = g.a;
   if (role == 2) isText = 0.0;
   if (uRigid == 1 && body < 0 && role != 1) isText = 0.0;   // ink outside every body (capture/DOM mismatch) is sand
-  bool rigidPart = body >= 0 && (gtype == 2 || isText > 0.5) && (uRigid == 1 || role == 1);
+  bool rigidPart = body >= 0 && (gtype >= 2 || isText > 0.5) && (uRigid == 1 || role == 1);   // type 3 = ink-only word in a frame
   vec2 pos = P.xy; float z = P.z; vec3 vel = V.xyz;
   float dt = uDt;
   float rnd = hash(home);
@@ -324,7 +324,7 @@ void main(){
 }`;
 
 const VS_POINTS = GLSL_HEADER + GLSL_LAB + `
-uniform sampler2D uPos, uShot;
+uniform sampler2D uPos, uShot, uGroup;
 uniform vec2 uRes; uniform int uW; uniform float uPointSize, uDepthShade;
 out vec4 vColor;
 void main(){
@@ -337,7 +337,11 @@ void main(){
   vColor = vec4(c * (1.0 + uDepthShade * dz * 1.8), 1.0);
   vec2 p = P.xy;
   if (p.x < -4.0 || p.y < -4.0 || p.x > uRes.x + 4.0 || p.y > uRes.y + 4.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 1.0; return; }
-  gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, 1.0 - p.y / uRes.y * 2.0, 0.0, 1.0);
+  // draw order is by depth, not by home pixel: text bodies in front, loose particles behind them,
+  // shapes behind those and frames last — so a frame's ground never paints over the words that fell past it
+  ivec4 g = ivec4(texelFetch(uGroup, t, 0) * 255.0 + 0.5);
+  float depth = g.r + 256 * g.g == 0 ? 0.0 : (g.b == 2 ? (g.a == 3 ? 0.9 : 0.6) : -0.6);
+  gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, 1.0 - p.y / uRes.y * 2.0, depth, 1.0);
   gl_PointSize = uPointSize * (1.0 + uDepthShade * max(dz, 0.0) * 2.5);
 }`;
 const FS_POINTS = GLSL_HEADER + `in vec4 vColor; out vec4 o; void main(){ o = vColor; }`;
@@ -345,7 +349,7 @@ const FS_POINTS = GLSL_HEADER + `in vec4 vColor; out vec4 o; void main(){ o = vC
 const VS_OBS = GLSL_HEADER + `
 uniform sampler2D uBodyNow, uBodyHome;
 uniform vec2 uRes; uniform int uBodyW;
-out vec2 vHome; out float vType;
+out vec2 vHome; out vec2 vRel; out vec2 vDims; out float vType;
 void main(){
   int b = gl_InstanceID;
   ivec2 bt = ivec2(b % uBodyW, b / uBodyW);
@@ -353,17 +357,23 @@ void main(){
   vec4 bh  = texelFetch(uBodyHome, bt, 0);
   int v = gl_VertexID;
   vec2 corner = vec2(float((v == 1 || v == 2 || v == 4) ? 1 : 0), float((v == 2 || v == 4 || v == 5) ? 1 : 0));
-  vec2 rel = (corner - 0.5) * (vec2(bh.z, abs(bh.w)) + 1.0);
-  vHome = bh.xy + rel;
-  vType = bh.w < 0.0 ? 2.0 : 1.0;
+  vDims = abs(bh.zw);
+  vec2 rel = (corner - 0.5) * (vDims + 1.0);
+  vHome = bh.xy + rel; vRel = rel;
+  vType = bh.z < 0.0 ? 3.0 : (bh.w < 0.0 ? 2.0 : 1.0);   // 1 text (ink at home), 2 solid box, 3 hollow frame
   vec2 p = now.xy + vec2(rel.x*now.z - rel.y*now.w, rel.x*now.w + rel.y*now.z);
   gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, p.y / uRes.y * 2.0 - 1.0, 0.0, 1.0);
 }`;
 const FS_OBS = GLSL_HEADER + `
 uniform sampler2D uMask; uniform vec2 uRes;
-in vec2 vHome; in float vType;
+in vec2 vHome; in vec2 vRel; in vec2 vDims; in float vType;
 out vec4 o;
 void main(){
+  if (vType > 2.5) {   // frame: only its four walls block (same thickness as the matter.js body)
+    float t = max(4.0, min(8.0, floor(min(vDims.x, vDims.y) / 8.0)));
+    if (abs(vRel.x) < vDims.x * 0.5 - t && abs(vRel.y) < vDims.y * 0.5 - t) discard;
+    o = vec4(1.0); return;
+  }
   if (vType > 1.5) { o = vec4(1.0); return; }
   ivec2 t = ivec2(floor(vHome));
   float m = 0.0;
@@ -374,6 +384,27 @@ void main(){
   if (m < 0.12) discard;
   o = vec4(1.0);
 }`;
+
+// Frames give their ink away to the words inside them, which leaves glyph-shaped holes in their ground.
+// This pass draws each frame's background colour as a quad just behind its particles, so the holes close.
+const VS_FILL = GLSL_HEADER + `
+uniform sampler2D uBodyNow, uBodyHome, uBodyFill;
+uniform vec2 uRes; uniform int uBodyW;
+out vec4 vFill;
+void main(){
+  int b = gl_InstanceID;
+  ivec2 bt = ivec2(b % uBodyW, b / uBodyW);
+  vFill = texelFetch(uBodyFill, bt, 0);
+  if (vFill.a < 0.5) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
+  vec4 now = texelFetch(uBodyNow, bt, 0);
+  vec4 bh  = texelFetch(uBodyHome, bt, 0);
+  int v = gl_VertexID;
+  vec2 corner = vec2(float((v == 1 || v == 2 || v == 4) ? 1 : 0), float((v == 2 || v == 4 || v == 5) ? 1 : 0));
+  vec2 rel = (corner - 0.5) * abs(bh.zw);
+  vec2 p = now.xy + vec2(rel.x*now.z - rel.y*now.w, rel.x*now.w + rel.y*now.z);
+  gl_Position = vec4(p.x / uRes.x * 2.0 - 1.0, 1.0 - p.y / uRes.y * 2.0, 0.95, 1.0);
+}`;
+const FS_FILL = GLSL_HEADER + `in vec4 vFill; out vec4 o; void main(){ o = vec4(vFill.rgb, 1.0); }`;
 
 // ------------------------------------------------------------------ parameters & presets
 const SEL = ['all pixels', 'text', 'non-text', 'dark pixels', 'light pixels'];
@@ -465,6 +496,31 @@ function mergeRects(rects, gapFactor) {
   return out;
 }
 
+// html2canvas (and some fonts under any capture) draws a text run a few pixels off its DOM rects — enough
+// to leave descenders behind. Slide each line's glyph rects vertically onto the ink they are meant to cover.
+function alignCharsToInk(chars, ink, W, H, maxShift = 14) {
+  const out = chars.map(c => c.slice());
+  for (const L of mergeRects(chars, 1.1)) {
+    const x0 = Math.max(0, Math.floor(L.x)), x1 = Math.min(W, Math.ceil(L.x + L.w)), h = Math.round(L.h);
+    if (x1 - x0 < 2 || h < 2) continue;
+    const yA = Math.max(0, Math.floor(L.y) - maxShift), yB = Math.min(H, Math.ceil(L.y + L.h) + maxShift);
+    const prof = new Float64Array(Math.max(0, yB - yA));
+    for (let y = yA; y < yB; y++) { let s = 0; const row = y * W; for (let x = x0; x < x1; x++) s += ink[row + x]; prof[y - yA] = s; }
+    let best = 0, bestV = -1;
+    for (let d = -maxShift; d <= maxShift; d++) {
+      const ya = Math.floor(L.y) + d - yA; let v = 0;
+      for (let y = Math.max(0, ya); y < Math.min(prof.length, ya + h); y++) v += prof[y];
+      if (v > bestV || (v === bestV && Math.abs(d) < Math.abs(best))) { bestV = v; best = d; }
+    }
+    if (!best || bestV <= 0) continue;
+    chars.forEach((c, i) => {
+      const cx = c[0] + c[2] / 2, cy = c[1] + c[3] / 2;
+      if (cx >= L.x && cx <= L.x + L.w && cy >= L.y && cy <= L.y + L.h) out[i][1] += best;
+    });
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ the simulation
 class Sim {
   /** @param {HTMLCanvasElement} canvas  @param {{params?:object, pointer?:boolean, onStats?:Function}} opts */
@@ -477,12 +533,13 @@ class Sim {
     this.scatterSel = -1; this.pointSize = 1; this.scale = 1;
     this.pointer = { x: 0, y: 0, down: false };
     this.bodyW = 1024; this.bodyRows = 1;
-    const gl = this.gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+    const gl = this.gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: true, powerPreference: 'high-performance', preserveDrawingBuffer: false });
     if (!gl) throw new Error('physical-web: WebGL2 is required');
     if (!gl.getExtension('EXT_color_buffer_float')) throw new Error('physical-web: EXT_color_buffer_float is required');
     this.progInit = this._program(VS_FULL, FS_INIT);
     this.progSim = this._program(VS_FULL, FS_SIM);
     this.progPts = this._program(VS_POINTS, FS_POINTS);
+    this.progFill = this._program(VS_FILL, FS_FILL);
     this.progObs = this._program(VS_OBS, FS_OBS);
     gl.bindVertexArray(gl.createVertexArray());
     this.tex = {}; this.pos = []; this.vel = []; this.fb = []; this.cur = 0;
@@ -531,7 +588,9 @@ class Sim {
     }
     this.W = W; this.H = H; this.N = W * H;
     this.ink = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) this.ink[i] = mask[i * 4];
-    this.scene = { chars: scene.chars || [], shapes: scene.shapes || [], inkCount, W, H };
+    this.shotData = a;
+    const chars = scene.align === false ? (scene.chars || []) : alignCharsToInk(scene.chars || [], this.ink, W, H);
+    this.scene = { chars, shapes: scene.shapes || [], inkCount, W, H };
     this._freeGL();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     const shot = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, shot);
@@ -561,7 +620,7 @@ class Sim {
   }
   _freeGL() {
     const gl = this.gl;
-    for (const t of [this.tex.shot, this.tex.mask, this.tex.group, this.tex.obs, this.tex.bodyNow, this.tex.bodyHome, ...this.pos, ...this.vel]) if (t) gl.deleteTexture(t);
+    for (const t of [this.tex.shot, this.tex.mask, this.tex.group, this.tex.obs, this.tex.bodyNow, this.tex.bodyHome, this.tex.bodyFill, ...this.pos, ...this.vel]) if (t) gl.deleteTexture(t);
     for (const f of [this.obsFb, ...this.fb]) if (f) gl.deleteFramebuffer(f);
     this.tex = {}; this.pos = []; this.vel = []; this.fb = []; this.obsFb = null;
   }
@@ -587,7 +646,8 @@ class Sim {
     for (const r of shapes) { const c = clip({ x: r[0], y: r[1], w: r[2], h: r[3] }, 0); if (c && c.w * c.h < W * H * 0.6) items.push({ ...c, type: 2, role: r[4] || 0 }); }
     const frames = items.filter(it => it.role === 3).map(it => [it.x, it.y, it.w, it.h]);
     // text bodies are padded 3 px so underlines and accents travel with their word
-    for (const r of textRects) { const c = clip(r, 3); if (c) items.push({ ...c, type: 1, role: 0, inFrame: frames.some(f => inside(c, f)) }); }
+    // a word inside a frame is type 3: an ink-only body (its background stays with the frame)
+    for (const r of textRects) { const c = clip(r, 3); if (c) items.push({ ...c, type: frames.some(f => inside(c, f)) ? 3 : 1, role: 0 }); }
     const MAX = 3000;
     if (items.length > MAX) { items.sort((p, q) => q.w * q.h - p.w * p.h); items = items.slice(0, MAX); }
 
@@ -601,7 +661,7 @@ class Sim {
       const id = i + 1;
       for (let y = it.y; y < it.y + it.h; y++) for (let x = it.x; x < it.x + it.w; x++) {
         const px = y * W + x, o = px * 4;
-        if (it.inFrame && ink[px] < 30) continue;          // inside a frame only the ink is the word; the rest rides with the frame
+        if (it.role === 3 ? ink[px] > 0 : it.type === 3 && ink[px] === 0) continue;   // a frame takes no ink; a word in it takes only ink
         g[o] = id & 255; g[o + 1] = id >> 8; g[o + 2] = it.type; g[o + 3] = it.role;
       }
     });
@@ -643,15 +703,33 @@ class Sim {
       Composite.add(this.engine.world, this.mc);
     }
     this.bodyRows = Math.max(1, Math.ceil(this.bodies.length / this.bodyW));
-    if (this.tex.bodyNow) { gl.deleteTexture(this.tex.bodyNow); gl.deleteTexture(this.tex.bodyHome); }
+    if (this.tex.bodyNow) { gl.deleteTexture(this.tex.bodyNow); gl.deleteTexture(this.tex.bodyHome); gl.deleteTexture(this.tex.bodyFill); }
     const home = new Float32Array(this.bodyW * this.bodyRows * 4);
-    this.bodies.forEach((b, i) => { const h = b.plugin.home; home.set([h.x, h.y, h.w, h.type === 2 ? -h.h : h.h], i * 4); });
+    this.bodies.forEach((b, i) => { const h = b.plugin.home; home.set([h.x, h.y, h.role === 3 ? -h.w : h.w, h.type === 2 ? -h.h : h.h], i * 4); });   // sign bits: w<0 frame, h<0 non-text
     this.tex.bodyHome = this._tex(this.bodyW, this.bodyRows, gl.RGBA32F, gl.RGBA, gl.FLOAT, home);
+    const fill = new Uint8Array(this.bodyW * this.bodyRows * 4);
+    this.bodies.forEach((b, i) => { const h = b.plugin.home; if (h.role === 3) fill.set([...this._groundColor(h), 255], i * 4); });
+    this.tex.bodyFill = this._tex(this.bodyW, this.bodyRows, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, fill);
     this.bodyNowArr = new Float32Array(this.bodyW * this.bodyRows * 4);
     this.tex.bodyNow = this._tex(this.bodyW, this.bodyRows, gl.RGBA32F, gl.RGBA, gl.FLOAT, null);
     this._uploadBodies();
     if (P.rigid) this._setRigid(true, true);
     this.fit();
+  }
+  /** The most common non-ink colour inside a body's home rect (sampled on a grid): a frame's ground. */
+  _groundColor(h) {
+    const W = this.W, d = this.shotData, ink = this.ink, count = new Map();
+    const x0 = Math.max(0, Math.round(h.x - h.w / 2)), y0 = Math.max(0, Math.round(h.y - h.h / 2));
+    const x1 = Math.min(W, Math.round(h.x + h.w / 2)), y1 = Math.min(this.H, Math.round(h.y + h.h / 2));
+    const sx = Math.max(1, Math.floor((x1 - x0) / 48)), sy = Math.max(1, Math.floor((y1 - y0) / 48));
+    let best = 0xffffff, bestN = 0;
+    for (let y = y0; y < y1; y += sy) for (let x = x0; x < x1; x += sx) {
+      const px = y * W + x; if (ink[px]) continue;
+      const k = (d[px * 4] << 16) | (d[px * 4 + 1] << 8) | d[px * 4 + 2];
+      const n = (count.get(k) || 0) + 1; count.set(k, n);
+      if (n > bestN) { bestN = n; best = k; }
+    }
+    return [best >> 16 & 255, best >> 8 & 255, best & 255];
   }
   _uploadBodies() {
     if (!this.bodyNowArr) return;
@@ -801,13 +879,21 @@ class Sim {
 
     const bc = parseColor(P.backdrop) || [63, 70, 84];
     gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    gl.clearColor(bc[0] / 255, bc[1] / 255, bc[2] / 255, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearColor(bc[0] / 255, bc[1] / 255, bc[2] / 255, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     const q = this.progPts;
     gl.useProgram(q);
-    this._bind(0, this.pos[this.cur], q, 'uPos'); this._bind(1, this.tex.shot, q, 'uShot');
+    this._bind(0, this.pos[this.cur], q, 'uPos'); this._bind(1, this.tex.shot, q, 'uShot'); this._bind(2, this.tex.group, q, 'uGroup');
     gl.uniform2f(this._U(q, 'uRes'), this.W, this.H); gl.uniform1i(this._U(q, 'uW'), this.W);
     gl.uniform1f(this._U(q, 'uPointSize'), this.pointSize); gl.uniform1f(this._U(q, 'uDepthShade'), P.depthShade ? 1 : 0);
+    gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LESS);
     gl.drawArrays(gl.POINTS, 0, this.N);
+    if (this.tex.bodyFill && this.bodies.length) {   // frames' ground, behind their particles
+      const f = this.progFill; gl.useProgram(f);
+      this._bind(0, this.tex.bodyNow, f, 'uBodyNow'); this._bind(1, this.tex.bodyHome, f, 'uBodyHome'); this._bind(2, this.tex.bodyFill, f, 'uBodyFill');
+      gl.uniform2f(this._U(f, 'uRes'), this.W, this.H); gl.uniform1i(this._U(f, 'uBodyW'), this.bodyW);
+      gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, this.bodies.length);
+    }
+    gl.disable(gl.DEPTH_TEST);
   }
   _frame(now) {
     if (!this.running) return;
