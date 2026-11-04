@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+- Demo page: the install snippet uses the jsDelivr URL and has a Copy button; the idle status no longer offers
+  keys that only work once the effect runs; `R` (reassemble) is documented; shortcuts ignore Cmd/Ctrl/Alt; the
+  presets table lists every preset and its names are clickable; preset buttons are disabled when physics is off;
+  touch devices get touch-only hints; the header wraps on narrow screens; favicon, Open Graph tags, focus styles
+  and tighter copy. Smoke test covers the root page.
+
 ## 0.4.0 — 2026-11-04
 - Installable: `dist/physical-web.bundle.min.js` is an all-in-one build (matter-js + html2canvas included);
   npm package with `exports`; `npm run build`.
