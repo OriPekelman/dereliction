@@ -37,7 +37,7 @@ with sync_playwright() as p:
       PW.sim.load(s); PW.sim.applyPreset('Avalanche');
       const frames = PW.sim.bodies.filter(b => b.plugin.home.role === 3);
       const f = frames[0]; const h = f && f.plugin.home;
-      const wordsInside = h ? PW.sim.bodies.filter(b => b.plugin.home.type === 1 && b.plugin.home.x > h.x - h.w/2 && b.plugin.home.x < h.x + h.w/2 && b.plugin.home.y > h.y - h.h/2 && b.plugin.home.y < h.y + h.h/2).length : 0;
+      const wordsInside = h ? PW.sim.bodies.filter(b => (b.plugin.home.type === 1 || b.plugin.home.type === 3) && b.plugin.home.x > h.x - h.w/2 && b.plugin.home.x < h.x + h.w/2 && b.plugin.home.y > h.y - h.h/2 && b.plugin.home.y < h.y + h.h/2).length : 0;
       await new Promise(r => setTimeout(r, 2500));
       return { shapes: s.shapes.length, roles: s.shapes.map(x => x[4]), frames: frames.length, parts: f ? f.parts.length : 0, wordsInside, fell: f ? f.position.y - h.y : 0, solidStill: PW.sim.bodies.filter(b => b.plugin.home.role === 1).every(b => b.isStatic) };
     }""")
