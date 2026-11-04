@@ -13,10 +13,10 @@ One script tag. No server, no build step. Runs on the GPU (WebGL2) with a millio
 ## Install
 
 The quickest way: one tag, zero configuration. The bundle includes its two dependencies
-(matter-js for rigid bodies, html2canvas for capturing the page).
+(matter-js for rigid bodies, html2canvas for capturing the page). Pin a tag instead of `@main` in production.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/physical-web/dist/physical-web.bundle.min.js" defer
+<script src="https://cdn.jsdelivr.net/gh/OriPekelman/physical-web@main/dist/physical-web.bundle.min.js" defer
         data-attach data-idle="8000" data-preset="Avalanche"></script>
 ```
 

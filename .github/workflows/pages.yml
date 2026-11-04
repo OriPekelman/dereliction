@@ -1,6 +1,7 @@
 name: pages
-# Manual until the repo is public (GitHub Pages needs a public repo or a paid plan). Then add `push: {branches: [main]}`.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

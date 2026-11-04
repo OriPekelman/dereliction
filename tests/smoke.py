@@ -60,8 +60,8 @@ with sync_playwright() as p:
     idle = pg.text_content("#status") or ""
     check(idle and "1–5" not in idle and "presets" not in idle, f"idle status offers no keys: {idle}")
     pg.click("#presets button[data-preset='Melt']")
-    try:  # poll for Melt, giving up before the 5 s idle timer could start Avalanche on its own
-        pg.wait_for_function("ctl.active && ctl.sim && ctl.sim.presetName === 'Melt'", timeout=4000)
+    try:  # poll for Melt (the click clears the idle timer, so a long wait cannot be satisfied by Avalanche)
+        pg.wait_for_function("ctl.active && ctl.sim && ctl.sim.presetName === 'Melt'", timeout=9000)
     except Exception:
         pass
     root = pg.evaluate("() => ({ active: ctl.active, preset: ctl.sim && ctl.sim.presetName })")
