@@ -129,5 +129,7 @@ one vertex shader draws `W×H` points via `gl_VertexID`. Every force is gated by
 matter.js; their transforms are uploaded as a small float texture each frame and particles inside a
 body follow it. The bodies are also rasterised each frame into an obstacle map (glyph bodies
 textured with the ink mask), which free particles collide with, so sand piles on the letters even
-while the letters are falling. With `recycle`, particles that leave the page re-enter at the top
-through the spout.
+while the letters are falling. Points are drawn with a depth test, text bodies in front, then loose
+particles, then shapes and frames, so a block's ground never paints over the words that fell past it;
+each frame also draws its ground colour as a quad behind its particles, closing the holes its words
+left. With `recycle`, particles that leave the page re-enter at the top through the spout.

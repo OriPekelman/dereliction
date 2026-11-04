@@ -1,6 +1,6 @@
 {
   "name": "physical-web",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Give the pixels of a web page mass: GPU particles, rigid words, sand that pours over letters. Drop-in, client-side.",
   "main": "lib/physical-web.js",
   "module": "lib/physical-web.mjs",
