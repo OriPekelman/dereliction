@@ -19,7 +19,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { background: var(--paper); }
   body { color: var(--ink); background: var(--paper); font: 19px/1.55 Georgia, "Iowan Old Style", "Times New Roman", serif; }
-  header { --physics: solid; display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; align-items: baseline; padding: 20px 6vw; border-bottom: 2px solid var(--ink); font-family: Helvetica, Arial, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: space-between; align-items: baseline; padding: 20px 6vw; border-bottom: 2px solid var(--ink); font-family: Helvetica, Arial, sans-serif; }
   header b { letter-spacing: .06em; font-size: 15px; }
   header nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
   header nav a { color: var(--ink); text-decoration: none; font-size: 15px; }
@@ -94,7 +94,7 @@
       </div>
       <p>One file, one tag, no build step, no server. Or <code>npm i dereliction</code> and call <code>Dereliction.attach({…})</code> yourself.</p>
       <p>Tell it what should hold and what should go, in your own stylesheet:</p>
-<pre><code>header   { --physics: solid; }   /* never moves; sand piles on it      */
+<pre><code>.sticky  { --physics: solid; }   /* never moves; sand piles on it      */
 .card    { --physics: rigid; }   /* one body, falls as a block         */
 .block   { --physics: frame; }   /* falls as a box; words fall inside  */
 .fine    { --physics: sand;  }   /* its text is loose grains           */</code></pre>
@@ -135,6 +135,7 @@
   let leaving = false;
   const ctl = Dereliction.attach({
     idle: 5000, preset: 'Avalanche', capture: 'dom',
+    backdrop: '#dad5cb',                             // light warm grey: paper sand stays visible, ink stays readable
     exitOn: ['wheel', 'touchmove', 'scroll'],        // keys are used to switch presets; Esc exits
     onStart: () => { leaving = false; statusEl.textContent = TOUCH ? 'swipe or scroll to put it back' : 'drag to push the sand or throw a word · ' + BACK; },
     onEnd: () => { leaving = false; statusEl.textContent = IDLE; },

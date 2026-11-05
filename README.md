@@ -85,6 +85,9 @@ It does nothing on browsers without WebGL2, and nothing when the viewer prefers 
 | **Melt** | gravity on everything, drag by lightness |
 | **Reassemble** | a critically damped spring back to the original page |
 
+The pours enter from the top edge, so a `solid` element spanning the top of the viewport (a sticky header, say)
+will catch the sand. Leave such elements unmarked, or mark them `frame`, on pages that use those presets.
+
 Everything a preset sets is a parameter you can set yourself with `sim.set({...})`: gravity, wind
 direction and turbulence, viscosity, spring, each gated by a selector (all / text / non-text /
 dark / light), plus rigid-body granularity (lines, words, letters), solidity, pile depth, recycling,
