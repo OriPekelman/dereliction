@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-11-05
+- Renamed to **Dereliction** (was "physical-web"): package `dereliction`, global `window.Dereliction`, overlay class
+  `dereliction-overlay`, files `dist/dereliction*.js`, env vars `DERELICTION_*`. The CSS property stays `--physics`.
 - Demo page: the install snippet uses the jsDelivr URL and has a Copy button; the idle status no longer offers
   keys that only work once the effect runs; `R` (reassemble) is documented; shortcuts ignore Cmd/Ctrl/Alt; the
   presets table lists every preset and its names are clickable; preset buttons are disabled when physics is off;
@@ -8,7 +10,7 @@
   and tighter copy. Smoke test covers the root page.
 
 ## 0.4.0 — 2026-11-04
-- Installable: `dist/physical-web.bundle.min.js` is an all-in-one build (matter-js + html2canvas included);
+- Installable: `dist/dereliction.bundle.min.js` is an all-in-one build (matter-js + html2canvas included);
   npm package with `exports`; `npm run build`.
 - Zero-config: `<script src=… data-attach data-idle="8000" data-preset="Avalanche">` attaches on load; every
   `attach()` option works as a `data-` attribute.
@@ -32,7 +34,7 @@
   pours as sand instead of staying pinned.
 
 ## 0.2.0 — 2026-11-03
-- Library: `PhysicalWeb.attach()` overlays a live page after idle and plays a preset; exits on scroll/wheel/key.
+- Library: `Dereliction.attach()` overlays a live page after idle and plays a preset; exits on scroll/wheel/key.
 - Capture backends: client-only (html2canvas), prerendered static manifest (`prerender.py`), server (`server.py`).
 - Endless pouring (`recycle`) with a spout; presets Endless pour and Hourglass.
 - Reduced-motion and WebGL2 checks; `minWidth` option.

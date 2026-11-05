@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Pre-render physical-web captures for a static site at build time.
+"""Pre-render dereliction captures for a static site at build time.
 
 For each page and viewport width, renders the FULL page (viewport height = document height,
 capped) twice (with and without text) and extracts glyph/shape rects with the library's
-own extractor, then writes a manifest the client reads via PhysicalWeb.captureStatic().
+own extractor, then writes a manifest the client reads via Dereliction.captureStatic().
 
   uv run prerender.py --base http://localhost:8080 --out ./public/physics \
       --pages / /about/ --widths 1280 1440 1512 1680 1920
@@ -21,7 +21,7 @@ from playwright.sync_api import sync_playwright
 from server import HIDE_TEXT_CSS
 
 HERE = Path(__file__).parent
-LIB = HERE / "lib" / "physical-web.js"
+LIB = HERE / "lib" / "dereliction.js"
 FREEZE_CSS = "*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }"
 
 
@@ -60,7 +60,7 @@ def main():
                 page.add_style_tag(content=FREEZE_CSS)
                 page.add_script_tag(content=lib_src)
                 page.wait_for_timeout(300)
-                rects = page.evaluate("PhysicalWeb.extractRects(document)")
+                rects = page.evaluate("Dereliction.extractRects(document)")
                 base = f"{slug(path)}-{w}"
                 page.screenshot(path=str(out / f"{base}.shot.png"))
                 page.add_style_tag(content=HIDE_TEXT_CSS)

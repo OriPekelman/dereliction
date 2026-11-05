@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Physical Web</title>
+<title>Dereliction</title>
 <style>
   :root { --bg:#0e0f12; --panel:#15171c; --line:#262a33; --fg:#e6e8ee; --dim:#8b93a7; --acc:#ffb547; }
   * { box-sizing: border-box; }
@@ -42,7 +42,7 @@
 </head>
 <body>
 <aside id="panel">
-  <h1>Physical Web <small>playground</small></h1>
+  <h1>Dereliction <small>playground</small></h1>
   <p class="hint">Every pixel of a captured page is a GPU particle; glyphs, images and marked elements are rigid bodies. Drag on the canvas to push particles or grab bodies. <a href="live-demo.html">Live-page demo →</a></p>
 
   <section>
@@ -78,10 +78,10 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
-<script src="../lib/physical-web.js"></script>
+<script src="../lib/dereliction.js"></script>
 <script>
 'use strict';
-const { Sim, PRESETS, DEFAULTS, SEL, captureServer, captureDom } = PhysicalWeb;
+const { Sim, PRESETS, DEFAULTS, SEL, captureServer, captureDom } = Dereliction;
 const $ = s => document.querySelector(s);
 const statusEl = $('#status');
 function status(msg, err = false) { statusEl.textContent = msg; statusEl.className = err ? 'err' : ''; }
@@ -251,7 +251,7 @@ function demoPage() {
     ctx.fillStyle = '#f7f6f2'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#15161a'; ctx.fillRect(0, 0, W, 64);
     if (!withText) shapes.push([0, 0, W, 64, 1]);                       // nav bar: --physics: solid
-    ctx.font = 'bold 20px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('THE PHYSICAL WEB', 40, 22);
+    ctx.font = 'bold 20px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText('DERELICTION', 40, 22);
     ctx.font = '15px Helvetica, Arial, sans-serif'; ctx.fillStyle = '#9aa4b8'; ctx.fillText('physics · pixels · play', W - 240, 24);
     const colW = Math.min(620, W * 0.5);
     let y = text('Pixels have mass now', 60, 110, 'bold 60px Georgia, "Times New Roman", serif', '#111111', colW);
@@ -282,7 +282,7 @@ function demoPage() {
   show({ shot: withText, notext: noText, chars, shapes, w: W, h: H }, `Demo page — ${chars.length} glyphs, ${shapes.length} shapes (nav bar is solid, button is a rigid block). Pick a preset.`);
 }
 demoPage();
-window.PW = { sim, demoPage };
+window.DR = { sim, demoPage };
 </script>
 </body>
 </html>

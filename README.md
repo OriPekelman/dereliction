@@ -1,6 +1,6 @@
-# Physical Web
+# Dereliction
 
-**Give the pixels of a web page mass.**
+**Give the pixels of a web page mass.** Leave a page alone and it falls into dereliction.
 
 Leave a page alone for a few seconds and it comes apart: every pixel becomes a particle,
 every word a rigid body. Words tumble into a pile, the paper pours over them like sand and
@@ -8,7 +8,7 @@ settles on the letters. Scroll, and the page puts itself back together.
 
 One script tag. No server, no build step. Runs on the GPU (WebGL2) with a million particles.
 
-**Demo:** https://oripekelman.github.io/physical-web/ · **Playground:** https://oripekelman.github.io/physical-web/web/
+**Demo:** https://oripekelman.github.io/dereliction/ · **Playground:** https://oripekelman.github.io/dereliction/web/
 
 ## Install
 
@@ -16,24 +16,24 @@ The quickest way: one tag, zero configuration. The bundle includes its two depen
 (matter-js for rigid bodies, html2canvas for capturing the page). Pin a tag instead of `@main` in production.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/OriPekelman/physical-web@main/dist/physical-web.bundle.min.js" defer
+<script src="https://cdn.jsdelivr.net/gh/OriPekelman/dereliction@main/dist/dereliction.bundle.min.js" defer
         data-attach data-idle="8000" data-preset="Avalanche"></script>
 ```
 
-Or download `dist/physical-web.bundle.min.js` and host it yourself. Every `attach()` option can
+Or download `dist/dereliction.bundle.min.js` and host it yourself. Every `attach()` option can
 be given as a `data-` attribute (`data-once`, `data-min-width="700"`, `data-preset="Letter pile"`…).
 
 With npm:
 
 ```sh
-npm i physical-web
+npm i dereliction
 ```
 ```js
-import PhysicalWeb from 'physical-web';     // or: const PhysicalWeb = require('physical-web')
-PhysicalWeb.attach({ idle: 8000, preset: 'Avalanche' });
+import Dereliction from 'dereliction';     // or: const Dereliction = require('dereliction')
+Dereliction.attach({ idle: 8000, preset: 'Avalanche' });
 ```
 
-The unbundled build (`dist/physical-web.min.js`, 36 KB) loads matter-js and html2canvas on
+The unbundled build (`dist/dereliction.min.js`, 36 KB) loads matter-js and html2canvas on
 demand from cdnjs the first time the effect starts, or uses the copies already on your page.
 Point `matterUrl` / `html2canvasUrl` at your own copies to stay first-party.
 
@@ -53,7 +53,7 @@ Defaults: words are bodies, `img/svg/video/canvas` are rigid shapes, everything 
 ## Behaviour
 
 ```js
-const ctl = PhysicalWeb.attach({
+const ctl = Dereliction.attach({
   idle: 8000,                 // ms without pointer/key/scroll activity before it starts
   preset: 'Avalanche',        // see presets below, or pass a params object
   exitOn: ['wheel', 'keydown', 'touchmove', 'scroll'],   // what brings the page back
@@ -94,7 +94,7 @@ backdrop colour, mouse force. The playground exposes all of them.
 
 | | |
 |---|---|
-| `new PhysicalWeb.Sim(canvas, {params, onStats})` | the simulation on your own canvas: `load(scene)`, `applyPreset(name|obj)`, `set(partial)`, `scatter(sel)`, `reset()`, `start()/stop()`, `fit()`, `dispose()` |
+| `new Dereliction.Sim(canvas, {params, onStats})` | the simulation on your own canvas: `load(scene)`, `applyPreset(name|obj)`, `set(partial)`, `scatter(sel)`, `reset()`, `start()/stop()`, `fit()`, `dispose()` |
 | `captureDom({resolution, ignore})` | client-side scene: renders the viewport twice with html2canvas (with and without text) and reads glyph boxes from the live DOM |
 | `captureStatic({manifest})` | scene from prerendered full-page captures (see below), cropped to the scroll position |
 | `captureServer({endpoint, url, width, height})` | scene from the optional capture service |
@@ -115,7 +115,7 @@ for every CSS feature. Two optional ways to use the browser's own rendering inst
   ```sh
   uv run prerender.py --base http://localhost:8080 --out ./public/physics --pages / /about/ --widths 1280 1440 1512 1680 1920
   ```
-- **A capture service.** `server.py` renders any allowed URL on demand (`PW_ALLOW`, `PW_CACHE`);
+- **A capture service.** `server.py` renders any allowed URL on demand (`DERELICTION_ALLOW`, `DERELICTION_CACHE`);
   `deploy/docker/` has a Dockerfile and compose file. Use it with `capture: 'server'`.
 
 ## Development

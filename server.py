@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""physical_web capture server.
+"""dereliction capture server.
 
 Serves the repo (playground at /web/, library at /lib/) and exposes
 GET /capture?url=...&w=1280&h=800&y=0 which:
@@ -11,9 +11,9 @@ GET /capture?url=...&w=1280&h=800&y=0 which:
 The client diffs the two screenshots to get a pixel-exact "ink" mask.
 
 Run:  uv run server.py [port]      (first time: uv run playwright install chromium)
-Env:  PW_ALLOW=https://example.com/,https://www.example.com/   restrict capturable URLs (prefixes; default: any)
-      PW_CACHE=/path/to/dir                                      cache captures by url+size (static sites)
-      PW_BIND=0.0.0.0                                            bind address (default 127.0.0.1)
+Env:  DERELICTION_ALLOW=https://example.com/,https://www.example.com/   restrict capturable URLs (prefixes; default: any)
+      DERELICTION_CACHE=/path/to/dir                                      cache captures by url+size (static sites)
+      DERELICTION_BIND=0.0.0.0                                            bind address (default 127.0.0.1)
 """
 import base64
 import hashlib
@@ -30,12 +30,12 @@ from urllib.parse import parse_qs, urlparse
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).parent
-ROOT = HERE                       # static root: /web/index.html, /lib/physical-web.js
-LIB = HERE / "lib" / "physical-web.js"
+ROOT = HERE                       # static root: /web/index.html, /lib/dereliction.js
+LIB = HERE / "lib" / "dereliction.js"
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else int(os.environ.get("PORT", "8008"))
-BIND = os.environ.get("PW_BIND", "127.0.0.1")
-ALLOW = [a.strip() for a in os.environ.get("PW_ALLOW", "").split(",") if a.strip()]
-CACHE = Path(os.environ["PW_CACHE"]) if os.environ.get("PW_CACHE") else None
+BIND = os.environ.get("DERELICTION_BIND", "127.0.0.1")
+ALLOW = [a.strip() for a in os.environ.get("DERELICTION_ALLOW", "").split(",") if a.strip()]
+CACHE = Path(os.environ["DERELICTION_CACHE"]) if os.environ.get("DERELICTION_CACHE") else None
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36")
 
@@ -109,7 +109,7 @@ class Capturer:
             page.add_style_tag(content=FREEZE_CSS)
             page.add_script_tag(content=LIB_SRC)
             page.wait_for_timeout(250)
-            rects = page.evaluate("PhysicalWeb.extractRects(document)")
+            rects = page.evaluate("Dereliction.extractRects(document)")
             shot = page.screenshot(type="png")
             page.add_style_tag(content=HIDE_TEXT_CSS)
             page.wait_for_timeout(150)
@@ -163,7 +163,7 @@ class Handler(SimpleHTTPRequestHandler):
         h = max(200, min(4096, int((q.get("h") or ["800"])[0])))
         y = max(0, int((q.get("y") or ["0"])[0]))
         if ALLOW and not any(url.startswith(a) for a in ALLOW):
-            return self._json(403, b"url not in PW_ALLOW")
+            return self._json(403, b"url not in DERELICTION_ALLOW")
         key = hashlib.sha1(f"{url}|{w}|{h}|{y}".encode()).hexdigest()
         if CACHE and (CACHE / f"{key}.json").exists():
             return self._json(200, (CACHE / f"{key}.json").read_bytes())
@@ -189,7 +189,7 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     CAP = Capturer()
     srv = ThreadingHTTPServer((BIND, PORT), Handler)
-    print(f"physical_web  http://localhost:{PORT}/web/   allow={ALLOW or 'any'} cache={CACHE}", flush=True)
+    print(f"dereliction  http://localhost:{PORT}/web/   allow={ALLOW or 'any'} cache={CACHE}", flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

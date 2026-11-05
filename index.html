@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Physical Web — give your pixels mass</title>
+<title>Dereliction — give your pixels mass</title>
 <meta name="description" content="A drop-in script that turns a web page into a million particles and its words into rigid bodies. Sand pours over the letters. Words pile up. Scroll and it reassembles.">
 <meta name="theme-color" content="#f4f1ea">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Physical Web — give your pixels mass">
+<meta property="og:title" content="Dereliction — give your pixels mass">
 <meta property="og:description" content="Leave the page alone and it falls apart: every pixel a particle, every word a rigid body. Scroll, and it puts itself back together.">
-<meta property="og:url" content="https://oripekelman.github.io/physical-web/">
+<meta property="og:url" content="https://oripekelman.github.io/dereliction/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Physical Web — give your pixels mass">
+<meta name="twitter:title" content="Dereliction — give your pixels mass">
 <meta name="twitter:description" content="Leave the page alone and it falls apart: every pixel a particle, every word a rigid body. Scroll, and it puts itself back together.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b1b1f'/%3E%3Ccircle cx='16' cy='21' r='7' fill='%23b4432a'/%3E%3C/svg%3E">
 <style>
@@ -65,7 +65,7 @@
 </style>
 </head>
 <body>
-<header><b>PHYSICAL WEB</b><nav><a href="web/index.html">Playground</a><a href="web/live-demo.html">Live demo</a><a href="https://github.com/OriPekelman/physical-web">GitHub</a></nav></header>
+<header><b>DERELICTION</b><nav><a href="web/index.html">Playground</a><a href="web/live-demo.html">Live demo</a><a href="https://github.com/OriPekelman/dereliction">GitHub</a></nav></header>
 
 <main>
   <h1>Give your pixels <em>mass.</em></h1>
@@ -88,11 +88,11 @@
 
       <h2>Use it</h2>
       <div class="snippet">
-<pre id="install"><code>&lt;script src="https://cdn.jsdelivr.net/gh/OriPekelman/physical-web@main/dist/physical-web.bundle.min.js" defer
+<pre id="install"><code>&lt;script src="https://cdn.jsdelivr.net/gh/OriPekelman/dereliction@main/dist/dereliction.bundle.min.js" defer
         data-attach data-idle="8000" data-preset="Avalanche"&gt;&lt;/script&gt;</code></pre>
         <button type="button" class="copy" id="copy">Copy</button>
       </div>
-      <p>One file, one tag, no build step, no server. Or <code>npm i physical-web</code> and call <code>PhysicalWeb.attach({…})</code> yourself.</p>
+      <p>One file, one tag, no build step, no server. Or <code>npm i dereliction</code> and call <code>Dereliction.attach({…})</code> yourself.</p>
       <p>Tell it what should hold and what should go, in your own stylesheet:</p>
 <pre><code>header   { --physics: solid; }   /* never moves; sand piles on it      */
 .card    { --physics: rigid; }   /* one body, falls as a block         */
@@ -125,7 +125,7 @@
 <footer>MIT licensed · by Ori Pekelman · respects <code>prefers-reduced-motion</code><span id="ver"></span></footer>
 <div class="status" id="status">idle 5 s → it falls · or press a button</div>
 
-<script src="lib/physical-web.js"></script>
+<script src="lib/dereliction.js"></script>
 <script>
   const statusEl = document.getElementById('status');
   const TOUCH = matchMedia('(pointer: coarse)').matches;
@@ -133,7 +133,7 @@
   const BACK = TOUCH ? 'scroll to put it back' : '1–5 presets · R reassemble · scroll or Esc to put it back';
   const QUICK = ['Avalanche', 'Letter pile', 'Hourglass', 'Sandstorm', 'Melt'];
   let leaving = false;
-  const ctl = PhysicalWeb.attach({
+  const ctl = Dereliction.attach({
     idle: 5000, preset: 'Avalanche', capture: 'dom',
     exitOn: ['wheel', 'touchmove', 'scroll'],        // keys are used to switch presets; Esc exits
     onStart: () => { leaving = false; statusEl.textContent = TOUCH ? 'swipe or scroll to put it back' : 'drag to push the sand or throw a word · ' + BACK; },
@@ -172,7 +172,7 @@
     setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1600);
   });
 
-  if (PhysicalWeb.version) document.getElementById('ver').textContent = ' · v' + PhysicalWeb.version;
+  if (Dereliction.version) document.getElementById('ver').textContent = ' · v' + Dereliction.version;
   window.ctl = ctl;
 </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Live page demo — Physical Web</title>
+<title>Live page demo — Dereliction</title>
 <style>
   :root { --primary: #033b96; --secondary: #510837; --bg: #eff1f4; --fg: #333; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,9 +49,9 @@
 </div>
 <div class="note" id="note">idle for 3 s → avalanche · scroll / key → reassemble</div>
 
-<script src="../lib/physical-web.js"></script>
+<script src="../lib/dereliction.js"></script>
 <script>
-  const ctl = PhysicalWeb.attach({
+  const ctl = Dereliction.attach({
     idle: 3000,
     preset: 'Avalanche',
     capture: 'dom',                 // client-only; 'server' + {server: '/capture'} or 'auto' with a manifest also work
