@@ -16,7 +16,7 @@ The quickest way: one tag, zero configuration. The bundle includes its two depen
 (matter-js for rigid bodies, html2canvas for capturing the page).
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/dereliction@0.5.0/dist/dereliction.bundle.min.js" defer
+<script src="https://cdn.jsdelivr.net/npm/dereliction@0.5.1/dist/dereliction.bundle.min.js" defer
         data-attach data-idle="8000" data-preset="Avalanche"></script>
 ```
 
