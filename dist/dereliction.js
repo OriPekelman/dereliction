@@ -50,10 +50,22 @@ html { scroll-behavior: auto !important; }
 // marked --physics: rigid|solid (CSS custom property, inherits) or data-physics="...".
 // Roles: 0 default (rigid when rigid mode is on), 1 solid (never moves, blocks sand), 2 sand,
 // 3 frame (the element is a hollow rigid block; the words inside it are their own bodies and fall within it).
+// Viewport size in CSS px. On mobile browsers, when any content overflows the layout viewport horizontally,
+// window.innerWidth/innerHeight report the viewport at *minimum zoom* (e.g. 780 on a 390px phone). Capturing at
+// that size lays the html2canvas clone out in a too-wide iframe (desktop line breaks, text autosizing spreading
+// the words apart). The visual viewport, normalised by its pinch scale, is what the reader actually sees.
+function viewportSize(win) {
+  win = win || global;
+  const iw = win.innerWidth, ih = win.innerHeight, v = win.visualViewport;
+  if (!v || !v.width) return { w: iw, h: ih };
+  const w = Math.round(v.width * v.scale), h = Math.round(v.height * v.scale);
+  return iw > w + 40 ? { w, h } : { w: iw, h: ih };   // 40: more than any classic scrollbar
+}
+
 function extractRects(doc, opts) {
   doc = doc || document; opts = opts || {};
   const win = doc.defaultView;
-  const W = opts.width || win.innerWidth, H = opts.height || win.innerHeight;
+  const vp = viewportSize(win), W = opts.width || vp.w, H = opts.height || vp.h;
   const ignore = opts.ignore || (() => false);
   const ROLE = { '': 0, default: 0, rigid: 0, solid: 1, sand: 2, particles: 2, none: 2, frame: 3 };
   const roleOf = (el) => {
@@ -912,7 +924,7 @@ class Sim {
 async function captureDom(opts = {}) {
   const doc = opts.document || document, win = doc.defaultView;
   const h2c = await ensureScript(opts.html2canvasUrl || CDN.html2canvas, 'html2canvas');
-  const vw = win.innerWidth, vh = win.innerHeight;
+  const { w: vw, h: vh } = viewportSize(win);
   const s = opts.resolution || 1;
   const ignore = opts.ignore || ((el) => el.classList && el.classList.contains('dereliction-overlay'));
   const bg = win.getComputedStyle(doc.body).backgroundColor;
@@ -935,7 +947,7 @@ async function captureDom(opts = {}) {
 async function captureServer(opts = {}) {
   const endpoint = opts.endpoint || '/capture';
   const url = opts.url || location.href;
-  const w = opts.width || global.innerWidth, h = opts.height || global.innerHeight, y = opts.scrollY ?? Math.round(global.scrollY || 0);
+  const vp = viewportSize(), w = opts.width || vp.w, h = opts.height || vp.h, y = opts.scrollY ?? Math.round(global.scrollY || 0);
   const res = await fetch(`${endpoint}?url=${encodeURIComponent(url)}&w=${w}&h=${h}&y=${y}`);
   if (!res.ok) throw new Error('dereliction capture failed: ' + (await res.text()).split('\n').slice(-2).join(' '));
   const j = await res.json();
@@ -952,7 +964,7 @@ async function captureStatic(opts = {}) {
   const path = opts.path || location.pathname;
   const page = man.pages[path] || man.pages[path.replace(/\/$/, '/index.htm')] || man.pages[path.replace(/\/$/, '/index.html')];
   if (!page) return null;
-  const vw = global.innerWidth, vh = global.innerHeight;
+  const { w: vw, h: vh } = viewportSize();
   const entry = page[String(vw)] || page[String(Object.keys(page).map(Number).filter(w => Math.abs(w - vw) <= (opts.tolerance || 0)).sort((a, b) => Math.abs(a - vw) - Math.abs(b - vw))[0])];
   if (!entry) return null;
   const base = new URL(manifestUrl, location.href);
@@ -980,7 +992,7 @@ function attach(opts = {}) {
   };
   const inert = { play: async () => null, stop() {}, arm() {}, disarm() {}, get sim() { return null; }, get active() { return false; }, options: o, inert: true };
   if (o.reducedMotion === 'respect' && global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches) return inert;
-  if (o.minWidth && global.innerWidth < o.minWidth) return inert;
+  if (o.minWidth && viewportSize().w < o.minWidth) return inert;
   try { const c = document.createElement('canvas'); const g = c.getContext('webgl2'); if (!g || !g.getExtension('EXT_color_buffer_float')) return inert; } catch (e) { return inert; }
   const state = { timer: null, active: false, sim: null, canvas: null, armed: true, scene: null, capturing: false };
 
@@ -989,7 +1001,7 @@ function attach(opts = {}) {
   const activity = () => { if (!state.active) arm(); };
 
   async function getScene() {
-    const res = o.resolution === 'auto' ? Math.min(1, Math.sqrt(o.maxParticles / (innerWidth * innerHeight))) : o.resolution;
+    const res = o.resolution === 'auto' ? Math.min(1, Math.sqrt(o.maxParticles / (viewportSize().w * viewportSize().h))) : o.resolution;
     const order = o.capture === 'auto' ? ['static', 'dom'] : [].concat(o.capture);
     for (const kind of order) {
       try {
@@ -1011,7 +1023,7 @@ function attach(opts = {}) {
       if (state.active || !state.armed) return;
       const canvas = document.createElement('canvas');
       canvas.className = 'dereliction-overlay';
-      Object.assign(canvas.style, { position: 'fixed', inset: '0', width: '100vw', height: '100vh', zIndex: String(o.zIndex), display: 'block', touchAction: 'none', cursor: 'crosshair' });
+      Object.assign(canvas.style, { position: 'fixed', inset: '0', width: '100vw', height: (global.CSS && CSS.supports && CSS.supports('height', '100dvh')) ? '100dvh' : '100vh', zIndex: String(o.zIndex), display: 'block', touchAction: 'none', cursor: 'crosshair' });
       document.body.appendChild(canvas);
       const backdrop = o.backdrop === 'auto' ? autoBackdrop(document) : o.backdrop;
       const sim = new Sim(canvas, { params: { backdrop } });
