@@ -1,6 +1,6 @@
 [project]
 name = "dereliction"
-version = "0.5.0"
+version = "0.5.1"
 description = "Give pixels mass: render a web page and apply particle physics to it"
 requires-python = ">=3.11"
 dependencies = ["playwright>=1.47"]

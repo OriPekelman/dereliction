@@ -1,6 +1,6 @@
 {
   "name": "dereliction",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Give the pixels of a web page mass: GPU particles, rigid words, sand that pours over letters. One script tag, client-side.",
   "main": "lib/dereliction.js",
   "module": "lib/dereliction.mjs",
@@ -8,12 +8,21 @@
   "unpkg": "dist/dereliction.bundle.min.js",
   "jsdelivr": "dist/dereliction.bundle.min.js",
   "exports": {
-    ".": { "import": "./lib/dereliction.mjs", "default": "./lib/dereliction.js" },
+    ".": {
+      "import": "./lib/dereliction.mjs",
+      "default": "./lib/dereliction.js"
+    },
     "./bundle": "./dist/dereliction.bundle.min.js",
     "./min": "./dist/dereliction.min.js",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "lib",
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "sideEffects": true,
   "scripts": {
     "build": "npm run build:lib && npm run build:bundle",
@@ -23,10 +32,26 @@
     "test": "uv run python tests/smoke.py",
     "prepack": "npm run build"
   },
-  "repository": { "type": "git", "url": "git+https://github.com/OriPekelman/dereliction.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OriPekelman/dereliction.git"
+  },
   "homepage": "https://oripekelman.github.io/dereliction/",
-  "bugs": { "url": "https://github.com/OriPekelman/dereliction/issues" },
-  "keywords": ["webgl", "webgl2", "gpgpu", "particles", "physics", "matter-js", "html2canvas", "creative-coding", "generative", "easter-egg"],
+  "bugs": {
+    "url": "https://github.com/OriPekelman/dereliction/issues"
+  },
+  "keywords": [
+    "webgl",
+    "webgl2",
+    "gpgpu",
+    "particles",
+    "physics",
+    "matter-js",
+    "html2canvas",
+    "creative-coding",
+    "generative",
+    "easter-egg"
+  ],
   "author": "Ori Pekelman",
   "license": "MIT",
   "devDependencies": {
@@ -34,6 +59,16 @@
     "html2canvas": "1.4.1",
     "matter-js": "0.20.0"
   },
-  "peerDependencies": { "html2canvas": "^1.4.1", "matter-js": "^0.20.0" },
-  "peerDependenciesMeta": { "html2canvas": { "optional": true }, "matter-js": { "optional": true } }
+  "peerDependencies": {
+    "html2canvas": "^1.4.1",
+    "matter-js": "^0.20.0"
+  },
+  "peerDependenciesMeta": {
+    "html2canvas": {
+      "optional": true
+    },
+    "matter-js": {
+      "optional": true
+    }
+  }
 }

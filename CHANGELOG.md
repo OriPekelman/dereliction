@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.1 — 2026-11-13
+- Mobile: the page is captured at the visible viewport. On phones `window.innerWidth` reports the zoomed-out
+  width whenever something overflows horizontally, so the capture was laid out about twice too wide (desktop
+  line breaks, words spread apart by text autosizing). A new `viewportSize()` uses the visual viewport in that
+  case; desktop behaviour is unchanged.
+- The overlay canvas uses `100dvh` where supported, so it matches the visible area while the URL bar shows.
+- Demo pages no longer overflow at phone width.
+
 ## 0.5.0 — 2026-11-05
 - Renamed to **Dereliction** (was "physical-web"): package `dereliction`, global `window.Dereliction`, overlay class
   `dereliction-overlay`, files `dist/dereliction*.js`, env vars `DERELICTION_*`. The CSS property stays `--physics`.
